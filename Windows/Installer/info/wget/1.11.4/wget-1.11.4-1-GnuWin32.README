@@ -1,0 +1,52 @@
+* Wget-1.11.4 for Windows *
+===========================
+
+What is it?
+-----------
+Wget: retrieve files from the WWW
+
+Description
+-----------
+GNU Wget is a free network utility to retrieve files from the World Wide Web using HTTP and FTP, the two most widely used Internet protocols. It works non-interactively, thus enabling work in the background, after having logged off. The recursive retrieval of HTML pages, as well as FTP sites is supported -- you can use Wget to make mirrors of archives and home pages, or traverse the web like a WWW robot (Wget understands /robots.txt). Wget works exceedingly well on slow or unstable connections, keeping getting the document until it is fully retrieved. Re-getting files from where it left off works on servers (both HTTP and FTP) that support it. Matching of wildcards and recursive mirroring of directories are available when retrieving via FTP. Both HTTP and FTP retrievals can be time-stamped, thus Wget can see if the remote file has changed since last retrieval and automatically retrieve the new version if it has. Wget supports proxy servers, which can lighten the network load, speed up retrieval and provide access behind firewalls. If you are behind a firewall that requires the use of a socks style gateway, you can get the socks library and compile wget with support for socks. Most of the features are configurable, either through command-line options, or via initialization file .wgetrc. Wget allows you to install a global startup file (etc/wgetrc by default) for site settings.
+	 
+Homepage
+--------
+http://www.gnu.org/software/wget
+Sources: http://ftp.gnu.org/gnu/wget/wget-1.11.4.tar.gz
+	 
+System
+------
+- Win32, i.e. MS-Windows 95 / 98 / ME / NT / 2000 / XP / 2003 / Vista / 2008 with msvcrt.dll
+- if msvcrt.dll is not in your Windows/System folder, get it from
+  Microsoft <http://support.microsoft.com/kb/259403>
+  or by installing Internet Explorer 4.0 or higher
+  <http://www.microsoft.com/windows/ie> 
+- libintl-2 <http://gnuwin32.sourceforge.net/packages/libintl.htm> 
+- libiconv-2 <http://gnuwin32.sourceforge.net/packages/libiconv.htm> 
+- openssl <http://gnuwin32.sourceforge.net/packages/openssl.htm> 
+
+Notes
+-----
+- Bugs and questions on this MS-Windows port: gnuwin32@users.sourceforge.net
+
+Package Availability
+--------------------
+- in: http://gnuwin32.sourceforge.net
+Installation
+------------
+
+Sources
+-------
+- wget-1.11.4-1-src.zip
+
+Compilation
+-----------
+The package has been compiled with GNU auto-tools, GNU make, and Mingw
+(GCC for MS-Windows). Any differences from the original sources are given
+in wget-1.11.4-1-GnuWin32.diffs in wget-1.11.4-1-src.zip. Libraries needed
+for compilation can be found at the lines starting with 'LIBS = ' in the
+Makefiles. Usually, these are standard libraries provided with Mingw, or
+libraries from the package itself; 'gw32c' refers to the libgw32c package,
+which provides MS-Windows substitutes or stubs for functions normally found in
+Unix. For more information, see: http://gnuwin32.sourceforge.net/compile.html
+and http://gnuwin32.sourceforge.net/packages/libgw32c.htm.

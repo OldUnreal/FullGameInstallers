@@ -1,0 +1,50 @@
+#Root files:
+Autorun.inf
+DATA.TAG
+data1.cab
+lang.dat
+layout.bin
+msvcrt.dll
+os.dat
+SETUP.EXE
+SETUP.INI
+setup.ins
+setup.lid
+_INST32I.EX_
+_isauto.exe
+_ISDEL.EXE
+_SETUP.DLL
+_sys1.cab
+_user1.cab
+AUTOPLAY.EXE
+UNINSTAL.EXE
+
+#UT GOTY files:
+DirectX7
+DirectX7\*
+GameSpy
+GameSpy\*
+Microsoft
+Microsoft\*
+System400
+System400\*
+
+#Unreal files:
+DirectX
+DirectX\*
+Glide
+Glide\*
+Heat
+Heat\*
+MPath
+MPath\*
+Patches
+Patches\*
+Shared
+Shared\*
+WorldNet
+WorldNet\*
+
+#Unreal Gold files:
+DIRECTX7
+DIRECTX7\*
