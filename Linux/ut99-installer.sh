@@ -68,29 +68,29 @@ getLatestRelease() {
 getArchitecture() {
 	case $(uname -m) in
 		x86_64)
-    		arc_suffix='amd64'
-    		system_suffix='64'
-    		url_download=$(cat ./patch_latest | jq -r '.assets[0].browser_download_url')
-    		;;
-    	aarch64)
-    		arc_suffix='arm64'
-    		system_suffix='ARM64'
-    		url_download=$(cat ./patch_latest | jq -r '.assets[1].browser_download_url')
-    		;;
+    			arc_suffix='amd64'
+    			system_suffix='64'
+    			url_download=$(cat ./patch_latest | jq -r '.assets[0].browser_download_url')
+    			;;
+    		aarch64)
+    			arc_suffix='arm64'
+    			system_suffix='ARM64'
+    			url_download=$(cat ./patch_latest | jq -r '.assets[1].browser_download_url')
+    			;;
 		i386)
 			arc_suffix='x86'
-    		system_suffix=''
-    		url_download=$(cat ./patch_latest | jq -r '.assets[2].browser_download_url')
+    			system_suffix=''
+    			url_download=$(cat ./patch_latest | jq -r '.assets[2].browser_download_url')
 			;;
-    	i686)
-    		arc_suffix='x86'
-    		system_suffix=''
-    		url_download=$(cat ./patch_latest | jq -r '.assets[2].browser_download_url')
-    		;;
-    	*)
-    		echo 'Unknown architecture'
-    		exit 0
-    		;; 	
+    		i686)
+    			arc_suffix='x86'
+    			system_suffix=''
+    			url_download=$(cat ./patch_latest | jq -r '.assets[2].browser_download_url')
+    			;;
+    		*)
+    			echo 'Unknown architecture'
+    			exit 0
+    			;; 	
 	esac
 }
 
@@ -121,24 +121,24 @@ addLinks() {
 	read -p 'Add a menu entry?(Y/n) ' app_entry
 	
 	if [[ -z $desktop_entry ]]; then
-    	desktop_entry='y'
+    		desktop_entry='y'
 	fi
 	if [[ -z $app_entry ]]; then
-    	app_entry='y'
+    		app_entry='y'
 	fi
 
 	if [[ $desktop_entry =~ ^[Yy]$ || $app_entry =~ ^[Yy]$ ]]; then
-    	echo 'Creating entry...'
-    	echo '[Desktop Entry]' > UT99.desktop
-    	echo 'Version=469d' >> UT99.desktop
-    	echo 'Name=Unreal Tournament' >> UT99.desktop
-    	echo 'Comment=Unreal Tournament' >> UT99.desktop
-    	echo 'Exec='$curr_path/$fold_name/'System'$system_suffix'/ut-bin-'$arc_suffix >> UT99.desktop
+    		echo 'Creating entry...'
+    		echo '[Desktop Entry]' > UT99.desktop
+    		echo 'Version=469d' >> UT99.desktop
+    		echo 'Name=Unreal Tournament' >> UT99.desktop
+    		echo 'Comment=Unreal Tournament' >> UT99.desktop
+    		echo 'Exec='$curr_path/$fold_name/'System'$system_suffix'/ut-bin-'$arc_suffix >> UT99.desktop
 		echo 'Icon='$curr_path/$fold_name/'System/Unreal.ico' >> UT99.desktop
-	    echo 'Terminal=false' >> UT99.desktop
-	    echo 'Type=Application' >> UT99.desktop
-	    echo 'Categories=ApplicationCategory;' >> UT99.desktop
-	    chmod +x UT99.desktop
+		echo 'Terminal=false' >> UT99.desktop
+	    	echo 'Type=Application' >> UT99.desktop
+	    	echo 'Categories=ApplicationCategory;' >> UT99.desktop
+	    	chmod +x UT99.desktop
 
 	    if [[ $desktop_entry =~ ^[Yy]$ ]]; then
 	    	cp UT99.desktop ~/Desktop/
@@ -157,7 +157,7 @@ deleteDownFiles() {
 	read -p 'Delete downloaded files?(Y/n) ' del_download
 	
 	if [[ -z $del_download ]]; then
-    	del_download='y'
+    		del_download='y'
 	fi
 
 	if [[ $del_download =~ ^[Yy]$ ]]; then
