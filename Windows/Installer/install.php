@@ -1,7 +1,7 @@
 <?php
 date_default_timezone_set('UTC');
 register_shutdown_function('on_exit');
-log_('Installer v1.0 started.'.PHP_EOL);
+log_('Installer v1.1 started.'.PHP_EOL);
 title('Loading...');
 unlink('installed');
 touch('closed');
@@ -26,6 +26,11 @@ $setup = array(
 	),
 );
 $game = isset($argv[1]) ? $argv[1] : 'ut99';
+
+$keep_files = false;
+foreach ($argv as $arg) {
+	if ($arg == 'keep_files') $keep_files = true;
+}
 
 $config = $setup[$game];
 
@@ -93,6 +98,12 @@ title('Unpacking game ISO...');
 
 run('tools\7z x -aoa -o.. -x@skip.txt '.basename($config['iso']));
 
+if ($game == 'ut99') {
+	title('Unpacking Bonus Pack 4...');
+
+	run('tools\7z x -aoa -o.. utbonuspack4-zip.7z');
+}
+
 title('Unpacking patch ZIP...');
 
 run('tools\7z x -aoa -o.. '.basename($patch['browser_download_url']));
@@ -126,6 +137,12 @@ foreach ($uzs as $uz) {
 }
 unset($uzs);
 
+title('Special fixes...');
+
+if (file_exists($copy_src = '../Maps/DM-Cybrosis][.unr') && !file_exists($copy_dest = '../Maps/DOM-Cybrosis][.unr')) {
+	copy($copy_src, $copy_dest);
+}
+
 title('Alter game configuration...');
 
 if ($game == 'ut99') {
@@ -134,9 +151,12 @@ if ($game == 'ut99') {
 }
 
 title('Remove downloaded files...');
-unlink(basename($config['patch']));
-unlink(basename($config['iso']));
-unlink(basename($patch['browser_download_url']));
+
+if (!$keep_files) {
+	unlink(basename($config['patch']));
+	unlink(basename($config['iso']));
+	unlink(basename($patch['browser_download_url']));
+}
 
 title('Game installed');
 log_('Game installed'.str_repeat(PHP_EOL, 20));
