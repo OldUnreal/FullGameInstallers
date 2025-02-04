@@ -7,6 +7,7 @@ Name "${GAME_NAME}"
 
 Var KeepFiles
 
+!define MUI_COMPONENTSPAGE_NODESC
 !include "MUI2.nsh"
 
 !define MUI_ABORTWARNING
@@ -23,12 +24,8 @@ Var KeepFiles
 
 LicenseData "${NOTICE_FILE}"
 
-Section /o "Keep installer files"
-	StrCpy $KeepFiles "keep_files"
-SectionEnd
-
 Section "Install Uninstaller" SecUninstaller
-	; Write the uninstaller executable to the installation directory
+; Write the uninstaller executable to the installation directory
 	WriteUninstaller "$INSTDIR\Uninstall.exe"
 	
 	WriteRegStr HKLM "${UNINSTALLER_KEY}" "DisplayName" "${GAME_NAME}"
@@ -37,6 +34,18 @@ Section "Install Uninstaller" SecUninstaller
 	WriteRegStr HKLM "${UNINSTALLER_KEY}" "Publisher" "Epic Games"
 	WriteRegStr HKLM "${UNINSTALLER_KEY}" "DisplayVersion" "OldUnreal Edition"
 	WriteRegDWORD HKLM "${UNINSTALLER_KEY}" "NoModify" 1
+SectionEnd
+
+Section "Register as handler for unreal:// protocol"
+; Register game executable as handler for unreal:// protocol
+	WriteRegStr HKCR "unreal" "" "URL:unreal Protocol"
+	WriteRegStr HKCR "unreal" "URL Protocol" ""
+	WriteRegStr HKCR "unreal\shell\open\command" "" '"$INSTDIR\System\${GAME_EXE}" "%1"'
+SectionEnd
+	
+Section /o "Keep installer files"
+; Leave on disk ISO and patch files, downloaded from internet
+	StrCpy $KeepFiles "keep_files"
 SectionEnd
 
 # Define the installer's section
@@ -132,6 +141,16 @@ Section Uninstall
 	
 	RMDir "$STARTMENU\Programs\${GAME_NAME}"
 	
+	ReadRegStr $0 HKCR "unreal\shell\open\command" ""
+	
+	; Compare the registry value with the expected command.
+	StrCmp $0 '"$INSTDIR\System\${GAME_EXE}" "%1"' protocolRegistered protocolNotRegistered
+	
+	protocolRegistered:
+	DeleteRegKey HKCR "unreal"
+	Goto protocolNotRegistered
+	
+	protocolNotRegistered:
 	; Remove registry entries for the uninstaller registration
 	DeleteRegKey HKLM "${UNINSTALLER_KEY}"
 	
