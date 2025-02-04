@@ -3,6 +3,8 @@
 # Setup name and description
 Name "${GAME_NAME}"
 
+!define UNINSTALLER_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\OldUnreal_${GAME}"
+
 Var KeepFiles
 
 !include "MUI2.nsh"
@@ -23,6 +25,18 @@ LicenseData "${NOTICE_FILE}"
 
 Section /o "Keep installer files"
 	StrCpy $KeepFiles "keep_files"
+SectionEnd
+
+Section "Install Uninstaller" SecUninstaller
+	; Write the uninstaller executable to the installation directory
+	WriteUninstaller "$INSTDIR\Uninstall.exe"
+	
+	WriteRegStr HKLM "${UNINSTALLER_KEY}" "DisplayName" "${GAME_NAME}"
+	WriteRegStr HKLM "${UNINSTALLER_KEY}" "UninstallString" "$INSTDIR\Uninstall.exe"
+	WriteRegStr HKLM "${UNINSTALLER_KEY}" "DisplayIcon" "$INSTDIR\System\${GAME_EXE}"
+	WriteRegStr HKLM "${UNINSTALLER_KEY}" "Publisher" "Epic Games"
+	WriteRegStr HKLM "${UNINSTALLER_KEY}" "DisplayVersion" "OldUnreal Edition"
+	WriteRegDWORD HKLM "${UNINSTALLER_KEY}" "NoModify" 1
 SectionEnd
 
 # Define the installer's section
@@ -104,5 +118,33 @@ Function FileSize
 	Exch $0
  
 FunctionEnd
+
+; The uninstaller section
+Section Uninstall
+	; Ask for confirmation before proceeding
+	MessageBox MB_YESNO|MB_ICONQUESTION "Are you sure you want to completely remove ${GAME_NAME}?$\r$\n$\r$\nAll files and registry entries will be removed.$\r$\n$\r$\nThis includes all content in the game folder, including custom files such as maps, textures, mods, mutators, save games, demo files, etc." IDNO skip
+
+	Delete "$DESKTOP\${GAME_NAME_SHORT}.lnk"
+	Delete "$DESKTOP\UnrealEd.lnk"
+
+	Delete "$STARTMENU\Programs\${GAME_NAME}\${GAME_NAME_SHORT}.lnk"
+	Delete "$STARTMENU\Programs\${GAME_NAME}\UnrealEd.lnk"
+	
+	RMDir "$STARTMENU\Programs\${GAME_NAME}"
+	
+	; Remove registry entries for the uninstaller registration
+	DeleteRegKey HKLM "${UNINSTALLER_KEY}"
+	
+	; Finally remove the installation directory
+	RMDir /r "$INSTDIR"
+	Goto done
+	
+	skip:
+	; If user clicked NO, abort uninstallation
+	DetailPrint "User canceled the uninstallation process."
+	Abort
+
+	done:
+SectionEnd
 
 !macroend
