@@ -27,7 +27,11 @@ Section "Install"
 	SetOutPath "$INSTDIR"
 
 	# Extract the entire "Installer" folder to the installation directory
-	File /r "Installer"
+	!ifdef BP4
+		File /r "Installer"
+	!else
+		File /r /x "utbonuspack4-zip.7z" "Installer"
+	!endif
 	
 	SetDetailsPrint none
 	Delete "$INSTDIR\Installer\installed"

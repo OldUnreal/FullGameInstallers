@@ -9,6 +9,7 @@
 !define ISO_SIZE_BYTES 649633792
 !define NOTICE_FILE "NOTICE.txt"
 !define ADD_SIZE_BYTES 1363148
+!define BP4 1
 
 OutFile "UT_GOTY.exe"
 InstallDir "C:\UnrealTournament"
