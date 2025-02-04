@@ -10,13 +10,13 @@ $setup = array(
 	'unreal' => array(
 		'iso' => 'https://archive.org/download/gt-unreal-1998/Unreal.iso',
 		'iso_size' => 477050880,
-		'patch_fallback' => 'https://api.github.com/repos/OldUnreal/Unreal-testing/releases/tags/v227k',
+		'patch_fallback' => 'https://api.github.com/repos/OldUnreal/Unreal-testing/releases/tags/v227k_12',
 		'patch' => 'https://api.github.com/repos/OldUnreal/Unreal-testing/releases/latest',
 	),
 	'ugold' => array(
 		'iso' => 'https://archive.org/download/totallyunreal/UNREAL_GOLD.ISO',
 		'iso_size' => 676734976,
-		'patch_fallback' => 'https://api.github.com/repos/OldUnreal/Unreal-testing/releases/tags/v227k',
+		'patch_fallback' => 'https://api.github.com/repos/OldUnreal/Unreal-testing/releases/tags/v227k_12',
 		'patch' => 'https://api.github.com/repos/OldUnreal/Unreal-testing/releases/latest',
 	),
 	'ut99' => array(
