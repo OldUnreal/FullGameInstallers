@@ -28,6 +28,8 @@ Microsoft
 Microsoft\*
 System400
 System400\*
+System\UnrealTournament.ini
+System\User.ini
 
 #Unreal files:
 DirectX
@@ -44,6 +46,7 @@ Shared
 Shared\*
 WorldNet
 WorldNet\*
+System\Unreal.ini
 
 #Unreal Gold files:
 DIRECTX7
