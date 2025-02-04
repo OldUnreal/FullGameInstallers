@@ -3,6 +3,8 @@
 # Setup name and description
 Name "${GAME_NAME}"
 
+Var KeepFiles
+
 !include "MUI2.nsh"
 
 !define MUI_ABORTWARNING
@@ -10,6 +12,7 @@ Name "${GAME_NAME}"
 # Display the license agreement page
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_LICENSE "${NOTICE_FILE}"
+!insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
@@ -18,8 +21,12 @@ Name "${GAME_NAME}"
 
 LicenseData "${NOTICE_FILE}"
 
+Section /o "Keep installer files"
+	StrCpy $KeepFiles "keep_files"
+SectionEnd
+
 # Define the installer's section
-Section "Install"
+Section
 	# Specify the additional space needed (in KB)
 	AddSize "${ADD_SIZE_BYTES}"	; Add 1.3GB to the required space
 
@@ -55,7 +62,7 @@ run_script:
 	DetailPrint "Starting installation script. Please wait until it ends, and do not interrupt the process."
 	
 	SetDetailsPrint none
-	ExecWait '"$INSTDIR\Installer\install.bat" ${GAME}'
+	ExecWait '"$INSTDIR\Installer\install.bat" ${GAME} $KeepFiles'
 	SetDetailsPrint both
 	
 	IfFileExists "$INSTDIR\Installer\closed" 0 check_done
