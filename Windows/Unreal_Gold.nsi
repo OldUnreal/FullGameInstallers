@@ -2,6 +2,7 @@
 
 !define GAME_NAME "Unreal Gold"
 !define GAME_NAME_SHORT "${GAME_NAME}"
+!define PRODUCT "Unreal Gold"
 !define GAME "ugold"
 !define GAME_EXE "Unreal.exe"
 !define ISO_NAME "UNREAL_GOLD.iso"

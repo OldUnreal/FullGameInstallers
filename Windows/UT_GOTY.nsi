@@ -2,6 +2,7 @@
 
 !define GAME_NAME "Unreal Tournament GOTY"
 !define GAME_NAME_SHORT "Unreal Tournament"
+!define PRODUCT "UnrealTournament"
 !define GAME "ut99"
 !define GAME_EXE "UnrealTournament.exe"
 !define ISO_NAME "UT_GOTY_CD1.iso"

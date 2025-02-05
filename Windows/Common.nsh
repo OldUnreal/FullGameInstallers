@@ -6,6 +6,7 @@ Name "${GAME_NAME}"
 !define UNINSTALLER_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\OldUnreal_${GAME}"
 
 Var KeepFiles
+Var RegisterAsHandler
 
 !define MUI_COMPONENTSPAGE_NODESC
 !include "MUI2.nsh"
@@ -25,7 +26,7 @@ Var KeepFiles
 LicenseData "${NOTICE_FILE}"
 
 Section "Install Uninstaller" SecUninstaller
-; Write the uninstaller executable to the installation directory
+	; Write the uninstaller executable to the installation directory
 	WriteUninstaller "$INSTDIR\Uninstall.exe"
 	
 	WriteRegStr HKLM "${UNINSTALLER_KEY}" "DisplayName" "${GAME_NAME}"
@@ -37,14 +38,12 @@ Section "Install Uninstaller" SecUninstaller
 SectionEnd
 
 Section "Register as handler for unreal:// protocol"
-; Register game executable as handler for unreal:// protocol
-	WriteRegStr HKCR "unreal" "" "URL:unreal Protocol"
-	WriteRegStr HKCR "unreal" "URL Protocol" ""
-	WriteRegStr HKCR "unreal\shell\open\command" "" '"$INSTDIR\System\${GAME_EXE}" "%1"'
+	; Register game executable as handler for unreal:// protocol
+	StrCpy $RegisterAsHandler "1"
 SectionEnd
 	
 Section /o "Keep installer files"
-; Leave on disk ISO and patch files, downloaded from internet
+	; Leave on disk ISO and patch files, downloaded from internet
 	StrCpy $KeepFiles "keep_files"
 SectionEnd
 
@@ -113,6 +112,17 @@ finish:
 	CreateShortcut "$INSTDIR\${GAME_NAME_SHORT}.lnk" "$INSTDIR\System\${GAME_EXE}"
 	CreateShortcut "$INSTDIR\UnrealEd.lnk" "$INSTDIR\System\UnrealEd.exe"
 
+	WriteRegStr HKLM "SOFTWARE\WOW6432Node\Unreal Technology\Installed Apps\${PRODUCT}" "Folder" '$INSTDIR'
+	WriteRegStr HKLM "SOFTWARE\Unreal Technology\Installed Apps\${PRODUCT}" "Folder" '$INSTDIR'
+	
+	StrCmp $RegisterAsHandler "" not_register_handler
+
+	WriteRegStr HKCR "unreal" "" "URL:unreal Protocol"
+	WriteRegStr HKCR "unreal" "URL Protocol" ""
+	WriteRegStr HKCR "unreal\shell\open\command" "" '"$INSTDIR\System\${GAME_EXE}" "%1"'
+
+not_register_handler:
+
 SectionEnd
 
 
@@ -131,8 +141,12 @@ FunctionEnd
 ; The uninstaller section
 Section Uninstall
 	; Ask for confirmation before proceeding
-	MessageBox MB_YESNO|MB_ICONQUESTION "Are you sure you want to completely remove ${GAME_NAME}?$\r$\n$\r$\nAll files and registry entries will be removed.$\r$\n$\r$\nThis includes all content in the game folder, including custom files such as maps, textures, mods, mutators, save games, demo files, etc." IDNO skip
+	MessageBox MB_YESNO|MB_ICONQUESTION "Are you sure you want to completely remove ${GAME_NAME}?$\r$\n$\r$\nAll files and registry entries will be removed.$\r$\n$\r$\nThis includes all content in the game folder, including custom files such as maps, textures, mods, mutators, save games, demo files, etc." IDYES remove
+	
+	DetailPrint "User canceled the uninstallation process."
+	Abort "User canceled the uninstallation process."
 
+remove:
 	Delete "$DESKTOP\${GAME_NAME_SHORT}.lnk"
 	Delete "$DESKTOP\UnrealEd.lnk"
 
@@ -141,29 +155,23 @@ Section Uninstall
 	
 	RMDir "$STARTMENU\Programs\${GAME_NAME}"
 	
+	ReadRegStr $0 HKLM "SOFTWARE\WOW6432Node\Unreal Technology\Installed Apps\${PRODUCT}" "Folder"
+	StrCmp $0 '$INSTDIR' 0 +2
+	DeleteRegKey HKLM "SOFTWARE\WOW6432Node\Unreal Technology\Installed Apps\${PRODUCT}"
+	
+	ReadRegStr $0 HKLM "SOFTWARE\Unreal Technology\Installed Apps\${PRODUCT}" "Folder"
+	StrCmp $0 '$INSTDIR' 0 +2
+	DeleteRegKey HKLM "SOFTWARE\Unreal Technology\Installed Apps\${PRODUCT}"
+
 	ReadRegStr $0 HKCR "unreal\shell\open\command" ""
-	
-	; Compare the registry value with the expected command.
-	StrCmp $0 '"$INSTDIR\System\${GAME_EXE}" "%1"' protocolRegistered protocolNotRegistered
-	
-	protocolRegistered:
+	StrCmp $0 '"$INSTDIR\System\${GAME_EXE}" "%1"' 0 +2
 	DeleteRegKey HKCR "unreal"
-	Goto protocolNotRegistered
 	
-	protocolNotRegistered:
 	; Remove registry entries for the uninstaller registration
 	DeleteRegKey HKLM "${UNINSTALLER_KEY}"
 	
 	; Finally remove the installation directory
 	RMDir /r "$INSTDIR"
-	Goto done
-	
-	skip:
-	; If user clicked NO, abort uninstallation
-	DetailPrint "User canceled the uninstallation process."
-	Abort
-
-	done:
 SectionEnd
 
 !macroend
