@@ -12,31 +12,90 @@ $setup = array(
 		'iso_size' => 477050880,
 		'patch_fallback' => 'https://api.github.com/repos/OldUnreal/Unreal-testing/releases/tags/v227k_12',
 		'patch' => 'https://api.github.com/repos/OldUnreal/Unreal-testing/releases/latest',
+		'exe' => 'Unreal.exe',
 	),
 	'ugold' => array(
 		'iso' => 'https://archive.org/download/totallyunreal/UNREAL_GOLD.ISO',
 		'iso_size' => 676734976,
 		'patch_fallback' => 'https://api.github.com/repos/OldUnreal/Unreal-testing/releases/tags/v227k_12',
 		'patch' => 'https://api.github.com/repos/OldUnreal/Unreal-testing/releases/latest',
+		'exe' => 'Unreal.exe',
 	),
 	'ut99' => array(
 		'iso' => 'https://archive.org/download/ut-goty/UT_GOTY_CD1.iso',
 		'iso_size' => 649633792,
 		'patch' => 'https://api.github.com/repos/OldUnreal/UnrealTournamentPatches/releases/latest',
+		'exe' => 'UnrealTournament.exe',
 	),
 );
 $game = isset($argv[1]) ? $argv[1] : 'ut99';
 
 $keep_files = false;
+$from_cd = false;
 foreach ($argv as $arg) {
 	if ($arg == 'keep_files') $keep_files = true;
+	if ($arg == 'from_cd') $from_cd = true;
 }
 
 $config = $setup[$game];
 
-title('Downloading game ISO...');
+$cd_drive = false;
+if ($from_cd) {
+	title('Check CD drives...');
+	foreach (range('A', 'Z') as $disk) {
+		if (file_exists($disk.':\\Textures\\Palettes.utx') &&
+			file_exists($disk.':\\System\\'.$config['exe'])) {
+			$cd_drive = $disk;
+			log_('Detected compatible CD disk: '.$cd_drive);
+			break;
+		}
+	}
+}
 
-get_file($config['iso'], $config['iso_size']);
+if ($cd_drive) {
+	$progress = 'Copy files from CD... ';
+	title($progress);
+
+	$skip = array();
+	$skip[strtolower(basename($config['exe'], '.exe').'.ini')] = 1;
+	$skip['user.ini'] = 1;
+	$dirs = array('Help', 'Maps', 'Music', 'NetGamesUSA.com', 'Sounds', 'System', 'Textures', 'Web');
+	$count_dirs = count($dirs);
+	$time = microtime(true);
+	foreach ($dirs as $i => $dir) {
+		$files = glob_recursive($cd_drive.':/'.$dir.'/*');
+		$done = 0;
+		$cnt = count($files)*$count_dirs;
+		foreach ($files as $done => $file) {
+			if ($print = (microtime(true) - $time > 1)) {
+				$time = microtime(true);
+			}
+			if ($print) title($progress.round(100.0*$i/$count_dirs + 100.0*$done/$cnt, 1).'%');
+			if (is_dir($file)) continue;
+			$name = strtolower(basename($file));
+			if (isset($skip[$name])) continue;
+			$to = '..'.substr($file, 2);
+			$todir = dirname($to);
+			if (!file_exists($todir)) {
+				mkdir($todir, 0777, true);
+			}
+			if (!copy($file, $to)) {
+				log_('Copy Failed. Return back to use ISO. Bad file: '.$file.' -> '.$to);
+				$cd_drive = false;
+				break;
+			}
+		}
+		if (!$cd_drive) break;
+	}
+	unset($files);
+	unset($skip);
+	if ($cd_drive) title($progress.'100%');
+}
+if (!$cd_drive) {
+	title('Downloading game ISO...');
+
+	get_file($config['iso'], $config['iso_size']);
+}
 
 $win_ver = php_uname('r');
 log_('Detected Windows version: '.$win_ver);
@@ -94,9 +153,11 @@ title('Downloading patch ZIP...');
 
 get_file($patch['browser_download_url'], $patch['size']);
 
-title('Unpacking game ISO...');
+if (!$cd_drive) {
+	title('Unpacking game ISO...');
 
-run('tools\7z x -aoa -o.. -x@skip.txt '.basename($config['iso']));
+	run('tools\7z x -aoa -o.. -x@skip.txt '.basename($config['iso']));
+}
 
 if ($game == 'ut99') {
 	title('Unpacking Bonus Pack 4...');

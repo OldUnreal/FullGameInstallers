@@ -7,6 +7,7 @@ Name "${GAME_NAME}"
 
 Var KeepFiles
 Var RegisterAsHandler
+Var FromCD
 
 !define MUI_COMPONENTSPAGE_NODESC
 !include "MUI2.nsh"
@@ -25,7 +26,7 @@ Var RegisterAsHandler
 
 LicenseData "${NOTICE_FILE}"
 
-Section "Install Uninstaller" SecUninstaller
+Section "Install the uninstaller" SecUninstaller
 	; Write the uninstaller executable to the installation directory
 	WriteUninstaller "$INSTDIR\Uninstall.exe"
 	
@@ -37,12 +38,17 @@ Section "Install Uninstaller" SecUninstaller
 	WriteRegDWORD HKLM "${UNINSTALLER_KEY}" "NoModify" 1
 SectionEnd
 
-Section "Register as handler for unreal:// protocol"
+Section "Register the game as the handler for the unreal:// protocol"
 	; Register game executable as handler for unreal:// protocol
 	StrCpy $RegisterAsHandler "1"
 SectionEnd
+
+Section /o "Install the game from a compatible CD, if one is found"
+	; Leave on disk ISO and patch files, downloaded from internet
+	StrCpy $FromCD "from_cd"
+SectionEnd
 	
-Section /o "Keep installer files"
+Section /o "Keep the installer files"
 	; Leave on disk ISO and patch files, downloaded from internet
 	StrCpy $KeepFiles "keep_files"
 SectionEnd
@@ -67,6 +73,9 @@ Section
 	Delete "$INSTDIR\Installer\closed"
 	SetDetailsPrint both
 	
+	StrCmp $FromCD "" check_iso run_script
+	
+check_iso:
 	IfFileExists "$INSTDIR\Installer\${ISO_NAME}" 0 download_iso
 	
 	Push "$INSTDIR\Installer\${ISO_NAME}"
@@ -84,7 +93,7 @@ run_script:
 	DetailPrint "Starting installation script. Please wait until it ends, and do not interrupt the process."
 	
 	SetDetailsPrint none
-	ExecWait '"$INSTDIR\Installer\install.bat" ${GAME} $KeepFiles'
+	ExecWait '"$INSTDIR\Installer\install.bat" ${GAME} $FromCD $KeepFiles'
 	SetDetailsPrint both
 	
 	IfFileExists "$INSTDIR\Installer\closed" 0 check_done
