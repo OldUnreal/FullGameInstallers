@@ -73,16 +73,15 @@ Section
 	Delete "$INSTDIR\Installer\closed"
 	SetDetailsPrint both
 	
-	StrCmp $FromCD "" check_iso run_script
+	StrCmp $FromCD "" 0 run_script
 	
-check_iso:
 	IfFileExists "$INSTDIR\Installer\${ISO_NAME}" 0 download_iso
 	
 	Push "$INSTDIR\Installer\${ISO_NAME}"
 	Call FileSize
 	Pop $0
 	
-	StrCmp $0 "${ISO_SIZE_BYTES}" run_script download_iso
+	StrCmp $0 "${ISO_SIZE_BYTES}" run_script 0
 
 download_iso:
 	# Run install.bat from the extracted folder
