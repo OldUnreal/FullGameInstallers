@@ -61,7 +61,7 @@ if ($cd_drive) {
 	$skip = array();
 	$skip[strtolower(basename($config['exe'], '.exe').'.ini')] = 1;
 	$skip['user.ini'] = 1;
-	$dirs = array('Help', 'Maps', 'Music', 'NetGamesUSA.com', 'Sounds', 'System', 'Textures', 'Web');
+	$dirs = array('Help', 'Manuals', 'Maps', 'Music', 'NetGamesUSA.com', 'Sounds', 'System', 'SystemLocalized', 'Textures', 'Web');
 	$count_dirs = count($dirs);
 	$time = microtime(true);
 	foreach ($dirs as $i => $dir) {
