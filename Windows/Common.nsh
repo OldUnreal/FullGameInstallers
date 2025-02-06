@@ -119,12 +119,17 @@ run_script:
 	IfFileExists "$INSTDIR\Installer\failed" 0 check_closed
 	StrCmp $Failed "" check_closed 0
 	
-	; Limited fallback - begin
+	MessageBox MB_YESNO|MB_ICONQUESTION "Failed to run the installer script. Do you want to run the limited fallback installer?" IDYES limited_fallback
 	
+	Goto check_closed
+	
+	; Limited fallback - begin
+limited_fallback:
 	DetailPrint "Failed to run the installer script. Starting limited fallback."
 	
-	StrCmp $FromCD "" +2 0
-	DetailPrint "The limited fallback does not support installing the game from a CD. Use the ISO option instead."
+	StrCmp $FromCD "" +3 0
+	DetailPrint "The limited fallback does not support installing the game from a CD. The ISO option will be used instead."
+	MessageBox MB_OK "The limited fallback does not support installing the game from a CD. The ISO option will be used instead."
 	
 	StrCmp $GetISO "" 0 skip_download_iso
 	inetc::get /WEAKSECURITY /CAPTION "Downloading game ISO file" /RESUME "" /QUESTION "" "${ISO_URL}" "$INSTDIR\Installer\${ISO_NAME}" /END

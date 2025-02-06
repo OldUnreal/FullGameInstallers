@@ -29,7 +29,8 @@ $setup = array(
 		'exe' => 'UnrealTournament.exe',
 	),
 );
-$game = isset($argv[1]) ? $argv[1] : 'ut99';
+$game = isset($argv[1]) ? $argv[1] : '';
+if (!$game || !isset($setup[$game])) die('Unknown game.');
 
 $keep_files = false;
 $from_cd = false;
