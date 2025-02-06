@@ -8,6 +8,7 @@
 !define ISO_NAME "UNREAL_GOLD.iso"
 !define ISO_URL "https://archive.org/download/totallyunreal/UNREAL_GOLD.ISO"
 !define ISO_SIZE_BYTES 676734976
+!define PATCH_URL "https://api.github.com/repos/OldUnreal/Unreal-testing/releases/tags/v227k_12"
 !define NOTICE_FILE "UNOTICE.txt"
 !define ADD_SIZE_BYTES 1468006
 

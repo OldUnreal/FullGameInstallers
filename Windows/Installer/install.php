@@ -4,6 +4,7 @@ register_shutdown_function('on_exit');
 log_('Installer v1.1 started.'.PHP_EOL);
 title('Loading...');
 unlink('installed');
+unlink('failed');
 touch('closed');
 
 $setup = array(

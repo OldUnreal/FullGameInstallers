@@ -9,6 +9,14 @@ Var KeepFiles
 Var RegisterAsHandler
 Var FromCD
 
+!include "WinVer.nsh"
+
+!include "StrFunc.nsh"
+; "Import"
+${StrStr}
+${StrSort}
+${StrRep}
+
 !define MUI_COMPONENTSPAGE_NODESC
 !include "MUI2.nsh"
 
@@ -71,9 +79,11 @@ Section
 	SetDetailsPrint none
 	Delete "$INSTDIR\Installer\installed"
 	Delete "$INSTDIR\Installer\closed"
+	Delete "$INSTDIR\Installer\failed"
 	SetDetailsPrint both
 	
-	StrCmp $FromCD "" 0 run_script
+	Var /GLOBAL Failed
+	Var /GLOBAL GetISO
 	
 	IfFileExists "$INSTDIR\Installer\${ISO_NAME}" 0 download_iso
 	
@@ -81,20 +91,203 @@ Section
 	Call FileSize
 	Pop $0
 	
-	StrCmp $0 "${ISO_SIZE_BYTES}" run_script 0
+	StrCmp $0 "${ISO_SIZE_BYTES}" 0 download_iso
+	StrCpy $GetISO "exists+match"
+	GoTo run_script
 
 download_iso:
+	StrCmp $FromCD "" 0 run_script
+
 	# Run install.bat from the extracted folder
 	inetc::get /WEAKSECURITY /CAPTION "Downloading game ISO file" /RESUME "" /QUESTION "" "${ISO_URL}" "$INSTDIR\Installer\${ISO_NAME}" /END
+	StrCpy $GetISO "download"
 
 run_script:	
 	SetDetailsPrint both
 	DetailPrint "Starting installation script. Please wait until it ends, and do not interrupt the process."
 	
+	FileOpen $1 "$INSTDIR\Installer\failed" w
+	FileClose $1
+	
+	IfFileExists "$INSTDIR\Installer\failed" 0 +2
+	StrCpy $Failed "created"
+	
 	SetDetailsPrint none
 	ExecWait '"$INSTDIR\Installer\install.bat" ${GAME} $FromCD $KeepFiles'
 	SetDetailsPrint both
 	
+	IfFileExists "$INSTDIR\Installer\failed" 0 check_closed
+	StrCmp $Failed "" check_closed 0
+	
+	; Limited fallback - begin
+	
+	DetailPrint "Failed to run the installer script. Starting limited fallback."
+	
+	StrCmp $FromCD "" +2 0
+	DetailPrint "The limited fallback does not support installing the game from a CD. Use the ISO option instead."
+	
+	StrCmp $GetISO "" 0 skip_download_iso
+	inetc::get /WEAKSECURITY /CAPTION "Downloading game ISO file" /RESUME "" /QUESTION "" "${ISO_URL}" "$INSTDIR\Installer\${ISO_NAME}" /END
+skip_download_iso:
+	
+	IfFileExists "$INSTDIR\Installer\${ISO_NAME}" 0 iso_not_found
+	
+	Push "$INSTDIR\Installer\${ISO_NAME}"
+	Call FileSize
+	Pop $0
+	
+	StrCmp $0 "${ISO_SIZE_BYTES}" 0 iso_wrong_size
+
+	DetailPrint 'Unpacking game ISO...'
+	nsExec::ExecToLog '"$INSTDIR\Installer\tools\7z.exe" x -aoa -o"$INSTDIR" -x@"$INSTDIR\Installer\skip.txt" "$INSTDIR\Installer\${ISO_NAME}"'
+	
+	StrCmp "${GAME}" "ut99" 0 skip_bp4
+	DetailPrint 'Unpacking Bonus Pack 4...'	
+	nsExec::ExecToLog '"$INSTDIR\Installer\tools\7z.exe" x -aoa -o"$INSTDIR" "$INSTDIR\Installer\utbonuspack4-zip.7z"'
+skip_bp4:
+
+	Var /GLOBAL WinVer
+	StrCpy $WinVer "-Windows"
+	
+	StrCmp "${GAME}" "ut99" 0 skip_check_xp
+	${If} ${AtMostWinXP} ; Running on XP or older. Surely not running on Vista. Maybe 98, or even 95.
+		StrCpy $WinVer "-WindowsXP"
+	${EndIf}
+skip_check_xp:
+
+	Delete "$INSTDIR\Installer\tmp"
+	inetc::get /WEAKSECURITY /CAPTION "Downloading patch info" /RESUME "" /QUESTION "" "${PATCH_URL}" "$INSTDIR\Installer\tmp" /END
+	
+	; Strings limited in size to 1023 length so we goes to use 2 buffer of 500 symbols. $6 and $7
+	IfFileExists "$INSTDIR\Installer\tmp" 0 patch_info_not_found
+	FileOpen $5 "$INSTDIR\Installer\tmp" r
+	
+	StrCpy $6 ""
+	FileRead $5 $7 500
+	StrCmp $7 "" patch_info_empty 0
+
+	Var /GLOBAL PatchUrl
+json_read_loop:	
+	StrCpy $6 $7
+	FileRead $5 $7 500
+	StrCpy $3 "$6$7"
+	
+	StrCmp $3 "" json_break_loop 0
+	
+json_begin_loop:
+	${StrStr} $0 $3 '"browser_download_url":"https://'
+	StrCpy $3 $0
+	StrCmp $3 "" json_read_loop 0
+	
+	${StrStr} $0 $3 'https://'
+	StrCpy $3 $0
+	
+	${StrSort} $0 $3 '' 'https://' '"' '0' '1' '0'
+	StrCmp $0 "" json_begin_loop 0
+	
+	${StrStr} $2 $0 $WinVer
+	StrCmp $2 "" json_begin_loop 0
+	
+	${StrStr} $2 $0 '.zip'
+	StrCmp $2 "" json_begin_loop 0
+	
+	StrCpy $PatchUrl $0
+json_break_loop:
+	FileClose $5
+	StrCmp $PatchUrl "" patch_url_empty 0
+	DetailPrint 'Parsed patch ZIP URL: "$PatchUrl"'
+	
+	Delete "$INSTDIR\Installer\patch.zip"
+	inetc::get /WEAKSECURITY /CAPTION "Downloading patch ZIP" /RESUME "" /QUESTION "" $PatchUrl "$INSTDIR\Installer\patch.zip" /END
+	
+	DetailPrint 'Unpacking patch ZIP...'
+	nsExec::ExecToLog '"$INSTDIR\Installer\tools\7z.exe" x -aoa -o"$INSTDIR" "$INSTDIR\Installer\patch.zip"'
+	
+	DetailPrint 'Unpacking game files... '
+	
+	StrCpy $5 "0"
+	FindFirst $0 $1 $INSTDIR\Maps\*.unr.uz
+cnt_loop:
+		StrCmp $1 "" cnt_done
+		IntOp $5 $5 + 1
+		FindNext $0 $1
+		Goto cnt_loop
+cnt_done:
+	FindClose $0
+	
+	StrCpy $4 "0"
+	FindFirst $0 $1 $INSTDIR\Maps\*.unr.uz
+uz_loop:
+		StrCmp $1 "" uz_done
+		${StrStr} $3 $1 "."
+		${StrRep} $2 $1 $3 ".unr"
+		
+		IntOp $6 $4 / $5
+		DetailPrint 'Unpacking game files... $6%      $1   --->   $2'
+		IntOp $4 $4 + 100
+		IfFileExists "$INSTDIR\Maps\$2" +2 0
+		nsExec::ExecToLog '"$INSTDIR\System\ucc.exe" decompress "..\Maps\$1"'
+
+		IfFileExists "$INSTDIR\System\$2" 0 +2
+		Rename "$INSTDIR\System\$2" "$INSTDIR\Maps\$2"
+		IfFileExists "$INSTDIR\Maps\$2" 0 +2
+		Delete "$INSTDIR\Maps\$1"
+		
+		FindNext $0 $1
+		Goto uz_loop
+uz_done:
+	FindClose $0
+
+	DetailPrint 'Special fixes...'
+	IfFileExists "$INSTDIR\Maps\DM-Cybrosis][.unr" 0 +2
+	CopyFiles "$INSTDIR\Maps\DM-Cybrosis][.unr" "$INSTDIR\Maps\DOM-Cybrosis][.unr"
+	
+	DetailPrint 'Alter game configuration...'
+
+	StrCmp "${GAME}" "ut99" 0 skip_copy_ini
+	CopyFiles "$INSTDIR\Installer\UnrealTournament.ini" "$INSTDIR\System\UnrealTournament.ini"
+	CopyFiles "$INSTDIR\Installer\User.ini" "$INSTDIR\System\User.ini"
+skip_copy_ini:
+
+	DetailPrint 'Remove downloaded files...';
+	StrCmp $KeepFiles "" 0 skip_remove_files
+	
+	Delete "$INSTDIR\Installer\${ISO_NAME}"
+	Delete "$INSTDIR\Installer\tmp"
+	Delete "$INSTDIR\Installer\patch.zip"
+skip_remove_files:	
+
+	GoTo finish	
+	
+	Var /GLOBAL FailReason
+	
+iso_not_found:
+	StrCmp $FailReason "" 0 +2
+	StrCpy $FailReason "ISO not found"
+	
+iso_wrong_size:
+	StrCmp $FailReason "" 0 +2
+	StrCpy $FailReason "ISO wrong size"
+	
+patch_info_not_found:
+	StrCmp $FailReason "" 0 +2
+	StrCpy $FailReason "Patch info not found at ${PATCH_URL}"
+	
+patch_info_empty:
+	StrCmp $FailReason "" 0 +2
+	StrCpy $FailReason "Patch info empty from ${PATCH_URL}"
+	
+patch_url_empty:
+	StrCmp $FailReason "" 0 +2
+	StrCpy $FailReason "Patch url empty from ${PATCH_URL}"
+	
+	DetailPrint "$FailReason"
+	MessageBox MB_OK "Installation failed: The installation process did not complete successfully. Please ensure the installer is run to completion and try again. $\r$\n$\r$\n$FailReason"
+	Abort
+		
+	; Limited fallback - end
+	
+check_closed:
 	IfFileExists "$INSTDIR\Installer\closed" 0 check_done
 	MessageBox MB_OK "Installation failed: The installation process was terminated because the installer window was closed. Please restart the installer to complete the setup."
 	Abort
