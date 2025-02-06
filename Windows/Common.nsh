@@ -6,7 +6,8 @@ Name "${GAME_NAME}"
 !define UNINSTALLER_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\OldUnreal_${GAME}"
 
 Var KeepFiles
-Var RegisterAsHandler
+Var ProtocolHandler
+Var UmodHandler
 Var FromCD
 
 !include "WinVer.nsh"
@@ -48,7 +49,12 @@ SectionEnd
 
 Section "Register the game as the handler for the unreal:// protocol"
 	; Register game executable as handler for unreal:// protocol
-	StrCpy $RegisterAsHandler "1"
+	StrCpy $ProtocolHandler "1"
+SectionEnd
+
+Section "Register the game as the handler for the UMOD files"
+	; Register game executable as handler for unreal:// protocol
+	StrCpy $UmodHandler "1"
 SectionEnd
 
 Section /o "Install the game from a compatible CD, if one is found"
@@ -321,13 +327,20 @@ finish:
 	WriteRegStr HKLM "SOFTWARE\WOW6432Node\Unreal Technology\Installed Apps\${PRODUCT}" "Folder" '$INSTDIR'
 	WriteRegStr HKLM "SOFTWARE\Unreal Technology\Installed Apps\${PRODUCT}" "Folder" '$INSTDIR'
 	
-	StrCmp $RegisterAsHandler "" not_register_handler
+	StrCmp $ProtocolHandler "" skip_protocol_handler
 
 	WriteRegStr HKCR "unreal" "" "URL:unreal Protocol"
 	WriteRegStr HKCR "unreal" "URL Protocol" ""
 	WriteRegStr HKCR "unreal\shell\open\command" "" '"$INSTDIR\System\${GAME_EXE}" "%1"'
+skip_protocol_handler:
 
-not_register_handler:
+	StrCmp $UmodHandler "" skip_umod_handler
+
+	WriteRegStr HKCR ".umod" "" "${GAME}.UModFile"
+	WriteRegStr HKCR "${GAME}.UModFile" "" "UMod File"
+	WriteRegStr HKCR "${GAME}.UModFile\DefaultIcon" "" "$INSTDIR\System\Setup.exe,0"
+	WriteRegStr HKCR "${GAME}.UModFile\shell\open\command" "" '"$INSTDIR\System\Setup.exe" "%1"'
+skip_umod_handler:
 
 SectionEnd
 
@@ -372,6 +385,15 @@ remove:
 	ReadRegStr $0 HKCR "unreal\shell\open\command" ""
 	StrCmp $0 '"$INSTDIR\System\${GAME_EXE}" "%1"' 0 +2
 	DeleteRegKey HKCR "unreal"
+	
+	ReadRegStr $0 HKCR "${GAME}.UModFile\shell\open\command" ""
+	StrCmp $0 '"$INSTDIR\System\${GAME_EXE}" "%1"' 0 skip_unreg_umod
+	DeleteRegKey HKCR "${GAME}.UModFile"
+	
+	ReadRegStr $0 HKCR ".umod" ""
+	StrCmp $0 '${GAME}.UModFile' 0 +2
+	DeleteRegValue HKCR ".umod" ""
+skip_unreg_umod:
 	
 	; Remove registry entries for the uninstaller registration
 	DeleteRegKey HKLM "${UNINSTALLER_KEY}"
