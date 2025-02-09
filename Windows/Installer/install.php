@@ -3,8 +3,8 @@ date_default_timezone_set('UTC');
 register_shutdown_function('on_exit');
 log_('Installer v1.1 started.'.PHP_EOL);
 title('Loading...');
-unlink('installed');
-unlink('failed');
+if (file_exists('installed')) unlink('installed');
+if (file_exists('failed')) unlink('failed');
 touch('closed');
 
 $setup = array(
@@ -239,7 +239,7 @@ function glob_recursive($pattern, $flags = 0) {
 
 function on_exit() {
 	log_('Installer exit.'.PHP_EOL);
-	unlink('closed');
+	if (file_exists('closed')) unlink('closed');
 }
 
 function title($title) {
