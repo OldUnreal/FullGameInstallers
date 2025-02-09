@@ -9,6 +9,8 @@ Var KeepFiles
 Var ProtocolHandler
 Var UmodHandler
 Var FromCD
+Var DesktopLinks
+Var StartMenuLinks
 
 !include "WinVer.nsh"
 
@@ -35,6 +37,14 @@ ${StrRep}
 
 LicenseData "${NOTICE_FILE}"
 
+Section "Create shortcuts on the Desktop"
+	StrCpy $DesktopLinks "1"
+SectionEnd
+
+Section "Create a Start Menu folder with shortcuts"
+	StrCpy $StartMenuLinks "1"
+SectionEnd
+
 Section "Install the uninstaller" SecUninstaller
 	; Write the uninstaller executable to the installation directory
 	WriteUninstaller "$INSTDIR\Uninstall.exe"
@@ -44,6 +54,8 @@ Section "Install the uninstaller" SecUninstaller
 	WriteRegStr HKLM "${UNINSTALLER_KEY}" "DisplayIcon" "$INSTDIR\System\${GAME_EXE}"
 	WriteRegStr HKLM "${UNINSTALLER_KEY}" "Publisher" "Epic Games"
 	WriteRegStr HKLM "${UNINSTALLER_KEY}" "DisplayVersion" "OldUnreal Edition"
+	WriteRegStr HKLM "${UNINSTALLER_KEY}" "DesktopLinks" "$DesktopLinks"
+	WriteRegStr HKLM "${UNINSTALLER_KEY}" "StartMenuLinks" "$StartMenuLinks"
 	WriteRegDWORD HKLM "${UNINSTALLER_KEY}" "NoModify" 1
 SectionEnd
 
@@ -310,13 +322,13 @@ check_done:
 
 finish:	
 	# Create Desktop shortcuts for fame excutable and UnrealEd
+	StrCmp $DesktopLinks "" +3 0
 	CreateShortcut "$DESKTOP\${GAME_NAME_SHORT}.lnk" "$INSTDIR\System\${GAME_EXE}"
 	CreateShortcut "$DESKTOP\UnrealEd.lnk" "$INSTDIR\System\UnrealEd.exe"
 
 	# Create the folder in the user's start menu folder
+	StrCmp $StartMenuLinks "" +4 0
 	CreateDirectory "$STARTMENU\Programs\${GAME_NAME}"
-
-	# Create shortcuts in the start menu folder
 	CreateShortcut "$STARTMENU\Programs\${GAME_NAME}\${GAME_NAME_SHORT}.lnk" "$INSTDIR\System\${GAME_EXE}"
 	CreateShortcut "$STARTMENU\Programs\${GAME_NAME}\UnrealEd.lnk" "$INSTDIR\System\UnrealEd.exe"
 
@@ -366,12 +378,15 @@ Section Uninstall
 	Abort "User canceled the uninstallation process."
 
 remove:
+	ReadRegStr $0 HKLM "${UNINSTALLER_KEY}" "DesktopLinks"
+	StrCmp $0 "" +3 0
 	Delete "$DESKTOP\${GAME_NAME_SHORT}.lnk"
 	Delete "$DESKTOP\UnrealEd.lnk"
 
+	ReadRegStr $0 HKLM "${UNINSTALLER_KEY}" "StartMenuLinks"
+	StrCmp $0 "" +4 0
 	Delete "$STARTMENU\Programs\${GAME_NAME}\${GAME_NAME_SHORT}.lnk"
 	Delete "$STARTMENU\Programs\${GAME_NAME}\UnrealEd.lnk"
-	
 	RMDir "$STARTMENU\Programs\${GAME_NAME}"
 	
 	ReadRegStr $0 HKLM "SOFTWARE\WOW6432Node\Unreal Technology\Installed Apps\${PRODUCT}" "Folder"
