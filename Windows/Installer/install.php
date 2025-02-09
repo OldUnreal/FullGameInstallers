@@ -86,6 +86,8 @@ if ($cd_drive) {
 				$cd_drive = false;
 				break;
 			}
+			// Prserve modify time
+			touch($to, filemtime($file), fileatime($file));
 		}
 		if (!$cd_drive) break;
 	}
