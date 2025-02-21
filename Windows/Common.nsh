@@ -135,7 +135,7 @@ run_script:
 	SetDetailsPrint both
 	
 	IfFileExists "$INSTDIR\Installer\failed" 0 check_closed
-	StrCmp $Failed "" check_closed 0
+#	StrCmp $Failed "" check_closed 0
 	
 	MessageBox MB_YESNO|MB_ICONQUESTION "Failed to run the installer script. Do you want to run the limited fallback installer?" IDYES limited_fallback
 	
