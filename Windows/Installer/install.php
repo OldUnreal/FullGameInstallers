@@ -75,7 +75,7 @@ if ($cd_drive) {
 			if ($print) title($progress.round(100.0*$i/$count_dirs + 100.0*$done/$cnt, 1).'%');
 			if (is_dir($file)) continue;
 			$name = strtolower(basename($file));
-			if (isset($skip[$name])) continue;
+			if (isset($skip[$name]) || preg_match('~/System/[^/]*[.](ct|de|el|es|fr|in|it|nl|pt|ru)t$~i', $file)) continue;
 			$to = '..'.substr($file, 2);
 			$todir = dirname($to);
 			if (!file_exists($todir)) {

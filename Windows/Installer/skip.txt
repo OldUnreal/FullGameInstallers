@@ -31,6 +31,18 @@ System400\*
 System\UnrealTournament.ini
 System\User.ini
 
+#Localizations files
+System\*.ctt
+System\*.det
+System\*.elt
+System\*.est
+System\*.frt
+System\*.int
+System\*.itt
+System\*.nlt
+System\*.ptt
+System\*.rut
+
 #Unreal files:
 DirectX
 DirectX\*
