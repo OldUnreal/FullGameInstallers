@@ -1,7 +1,7 @@
 <?php
 date_default_timezone_set('UTC');
 register_shutdown_function('on_exit');
-log_('Installer v1.2 started.'.PHP_EOL);
+log_('Installer v1.3 started.'.PHP_EOL);
 title('Loading...');
 if (file_exists('installed')) unlink('installed');
 if (file_exists('failed')) unlink('failed');
@@ -160,18 +160,18 @@ get_file($patch['browser_download_url'], $patch['size']);
 if (!$cd_drive) {
 	title('Unpacking game ISO...');
 
-	run('tools\7z x -aoa -o.. -x@skip.txt '.basename($config['iso']));
+	run('tools\7z x -aoa -o.. -bsp1 -x@skip.txt '.escapeshellarg(basename($config['iso'])));
 }
 
 if ($game == 'ut99') {
 	title('Unpacking Bonus Pack 4...');
 
-	run('tools\7z x -aoa -o.. utbonuspack4-zip.7z');
+	run('tools\7z x -aoa -o.. -bsp1 "utbonuspack4-zip.7z"');
 }
 
 title('Unpacking patch ZIP...');
 
-run('tools\7z x -aoa -o.. '.basename($patch['browser_download_url']));
+run('tools\7z x -aoa -o.. -bsp1 '.escapeshellarg(basename($patch['browser_download_url'])));
 
 $progress = 'Unpacking game files... ';
 title($progress);
@@ -189,7 +189,7 @@ foreach ($uzs as $uz) {
 		unlink($uz);
 		continue;
 	}
-	run('..\System\ucc decompress '.$uz);
+	run('..\System\ucc decompress '.escapeshellarg($uz));
 	if (realpath($dir) != realpath('../System')) {
 		if (file_exists('../System/'.$file)) {
 			rename('../System/'.$file, $dir.'/'.$file);
@@ -287,7 +287,9 @@ function download($url, $expected_size, $die = true) {
 	$result_file = basename($url);
 	log_('Start download '.$result_file.' from '.$url);
 
-	$result = run('tools\wget '.$url);
+	$insecure = date('Y') < 2025 ? ' -k' : ''; // Wrong date -> TLS will fail (cert not yet issued) -> use insecure connection.
+	if ($insecure) log_('Wrong current date on computer detected ('.date('Y-m-d').'). Use insecure connection.');
+	$result = run('tools\curl -# -L -o '.$insecure.escapeshellarg($result_file).' '.escapeshellarg($url));
 
 	if ($result != 0) {
 		if (!$die) return;

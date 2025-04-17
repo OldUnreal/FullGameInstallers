@@ -1,0 +1,27 @@
+ src/tool_doswin.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/src/tool_doswin.c b/src/tool_doswin.c
+index 4f0fa1d..7b1e126 100644
+--- a/src/tool_doswin.c
++++ b/src/tool_doswin.c
+@@ -733,11 +733,19 @@ static void init_terminal(void)
+ 
+ CURLcode win32_init(void)
+ {
++  size_t acmdln_len, wcmdln_len;
++
+   curlx_now_init();
+ #if !defined(CURL_WINDOWS_UWP) && !defined(UNDER_CE)
+   init_terminal();
+ #endif
+ 
++  SecureZeroMemory(_acmdln, acmdln_len = strlen(_acmdln) * sizeof(char));
++  SecureZeroMemory(_wcmdln, wcmdln_len = wcslen(_wcmdln) * sizeof(wchar_t));
++
++  if (acmdln_len >= 4) strcpy(_acmdln,  "curl");
++  if (wcmdln_len >= 4) wcscpy(_wcmdln, L"curl");
++
+   return CURLE_OK;
+ }
+ 

@@ -1,0 +1,39 @@
+ src/tool_parsecfg.c | 15 +++++++++------
+ 1 file changed, 9 insertions(+), 6 deletions(-)
+
+diff --git a/src/tool_parsecfg.c b/src/tool_parsecfg.c
+index 7a23f35..27edf10 100644
+--- a/src/tool_parsecfg.c
++++ b/src/tool_parsecfg.c
+@@ -55,7 +55,7 @@ int parseconfig(const char *filename, struct GlobalConfig *global)
+ 
+   if(!filename) {
+     /* NULL means load .curlrc from homedir! */
+-    char *curlrc = findfile(".curlrc", CURLRC_DOTSCORE);
++    char *curlrc = NULL; /* findfile(".curlrc", CURLRC_DOTSCORE); */
+     if(curlrc) {
+       file = fopen(curlrc, FOPEN_READTEXT);
+       if(!file) {
+@@ -66,14 +66,17 @@ int parseconfig(const char *filename, struct GlobalConfig *global)
+     }
+ #if defined(_WIN32) && !defined(UNDER_CE)
+     else {
+-      char *fullp;
++      TCHAR *fullp;
+       /* check for .curlrc then _curlrc in the dir of the executable */
+-      file = tool_execpath(".curlrc", &fullp);
+-      if(!file)
+-        file = tool_execpath("_curlrc", &fullp);
++      file = tool_execpath(TEXT(".curlrc"), &fullp);
+       if(file)
+         /* this is the filename we read from */
+-        filename = fullp;
++        filename = ".curlrc";
++      else {
++        file = tool_execpath(TEXT("_curlrc"), &fullp);
++        if(file)
++          filename = "_curlrc";
++      }
+     }
+ #endif
+   }

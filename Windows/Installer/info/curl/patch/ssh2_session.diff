@@ -1,0 +1,25 @@
+ src/session.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/src/session.c b/src/session.c
+index 2d77b05..79809cc 100644
+--- a/src/session.c
++++ b/src/session.c
+@@ -68,6 +68,8 @@
+ #undef libssh2_usec_t
+ #endif
+ 
++#define DIFFTIME(_b,_a) ((double)((_b) - (_a)))
++
+ /* libssh2_default_alloc
+  */
+ static
+@@ -628,7 +630,7 @@ int _libssh2_wait_socket(LIBSSH2_SESSION *session, time_t start_time)
+         (seconds_to_next == 0 ||
+          ms_to_next > session->api_timeout)) {
+         time_t now = time(NULL);
+-        elapsed_ms = (long)(1000*difftime(now, start_time));
++        elapsed_ms = (long)(1000*DIFFTIME(now, start_time));
+         if(elapsed_ms > session->api_timeout) {
+             return _libssh2_error(session, LIBSSH2_ERROR_TIMEOUT,
+                                   "API timeout expired");

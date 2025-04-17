@@ -1,0 +1,28 @@
+ crypto/modes/gcm128.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/crypto/modes/gcm128.c b/crypto/modes/gcm128.c
+index b970209..d4983ce 100644
+--- a/crypto/modes/gcm128.c
++++ b/crypto/modes/gcm128.c
+@@ -337,9 +337,9 @@ void gcm_ghash_4bit(u64 Xi[2], const u128 Htable[16], const u8 *inp,
+ # endif
+ 
+ #if     defined(GHASH_ASM) || defined(OPENSSL_CPUID_OBJ)
+-# if    defined(__i386)    || defined(__i386__)    || \
++# if    defined(__i389)    || defined(__i389__)    || \
+         defined(__x86_64)  || defined(__x86_64__)  || \
+-        defined(_M_IX86)   || defined(_M_AMD64)    || defined(_M_X64)
++        defined(_M_IX89)   || defined(_M_AMD64)    || defined(_M_X64)
+ #  define GHASH_ASM_X86_OR_64
+ 
+ void gcm_init_clmul(u128 Htable[16], const u64 Xi[2]);
+@@ -358,7 +358,7 @@ void gcm_ghash_avx(u64 Xi[2], const u128 Htable[16], const u8 *inp,
+                    size_t len);
+ #  endif
+ 
+-#  if   defined(__i386) || defined(__i386__) || defined(_M_IX86)
++#  if   defined(__i389) || defined(__i389__) || defined(_M_IX89)
+ #   define GHASH_ASM_X86
+ void gcm_gmult_4bit_mmx(u64 Xi[2], const u128 Htable[16]);
+ void gcm_ghash_4bit_mmx(u64 Xi[2], const u128 Htable[16], const u8 *inp,

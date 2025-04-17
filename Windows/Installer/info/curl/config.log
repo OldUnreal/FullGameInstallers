@@ -1,0 +1,53 @@
+Configured to build curl/libcurl:
+
+Host setup:       i686-w64-mingw32
+Install prefix:   /mingw32
+Compiler:         gcc
+CFLAGS:          -march=i586 -mtune=generic -isystem /d/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/include -Werror-implicit-function-declaration -O2 -Wno-system-headers
+CFLAGS extras:   
+CPPFLAGS:        -DNDEBUG -D_WIN32_WINNT=0x0501 -DNGHTTP2_STATICLIB -DNGHTTP3_STATICLIB -DNGTCP2_STATICLIB -DUNICODE -D_UNICODE -isystem /d/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/include -isystem D:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/include -isystem D:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/include -isystem D:/a/_temp/msys64/mingw32/bin/../include -isystem D:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/include -isystem D:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/include -isystem D:/a/_temp/msys64/mingw32/bin/../include -isystem /d/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/include -isystem D:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/include -isystem D:/a/_temp/msys64/mingw32/bin/../include -DUNICODE -D_UNICODE -isystem D:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/include -isystem D:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/include -isystem D:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/include -isystem D:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/include -isystem D:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/include
+LDFLAGS:         -mconsole -Wl,--trace -static -no-pthread -L/d/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/lib -L/d/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/lib -LD:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/lib -LD:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/lib -LD:/a/_temp/msys64/mingw32/bin/../lib -LD:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/lib -LD:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/lib -L/d/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/lib -LD:/a/_temp/msys64/mingw32/bin/../lib -LD:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/lib -LD:/a/_temp/msys64/mingw32/bin/../lib -LD:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/lib -LD:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/lib -LD:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/lib -LD:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/lib -LD:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/lib
+curl-config:   -L/d/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/lib -LD:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/lib -LD:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/lib -LD:/a/_temp/msys64/mingw32/bin/../lib -LD:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/lib -LD:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/lib -L/d/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/lib -LD:/a/_temp/msys64/mingw32/bin/../lib -LD:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/lib -LD:/a/_temp/msys64/mingw32/bin/../lib -LD:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/lib -LD:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/lib -LD:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/lib -LD:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/lib -LD:/a/cURL-build-win32/cURL-build-win32/build/x86/_deps/lib
+LIBS:            -lnghttp3 -lngtcp2_crypto_quictls -lngtcp2 -lnghttp2 -lidn2 -lrtmp -lz -lssl -lcrypto -lssh2 -lssh2 -lws2_32 -lssl -lcrypto -lz -lgsasl -lpsl -lbcrypt -ladvapi32 -lcrypt32 -lssl -lcrypto -lssl -lcrypto -lgdi32 -lwldap32 -lzstd -lzstd -lbrotlidec -lbrotlidec -lz -lws2_32 -liconv -lcrypt32 -lwinmm -lbrotlicommon
+
+curl version:     8.13.0
+SSL:              enabled (OpenSSL v3+)
+SSH:              enabled (libssh2)
+zlib:             enabled
+brotli:           enabled (libbrotlidec)
+zstd:             enabled (libzstd)
+GSS-API:          no      (--with-gssapi)
+GSASL:            enabled
+TLS-SRP:          no      (--enable-tls-srp)
+resolver:         Win32 threaded
+IPv6:             enabled
+Unix sockets:     enabled
+IDN:              enabled (libidn2)
+Build docs:       enabled (--disable-docs)
+Build libcurl:    Shared=no, Static=yes
+Built-in manual:  enabled
+--libcurl option: no
+Verbose errors:   enabled (--disable-verbose)
+Code coverage:    disabled
+SSPI:             no      (--enable-sspi)
+ca cert bundle:   no
+ca cert path:     no
+ca cert embed:    no
+ca fallback:      no
+LDAP:             enabled (winldap)
+LDAPS:            enabled
+IPFS/IPNS:        enabled
+RTSP:             enabled
+RTMP:             enabled (librtmp)
+PSL:              enabled
+Alt-svc:          enabled (--disable-alt-svc)
+Headers API:      enabled (--disable-headers-api)
+HSTS:             enabled (--disable-hsts)
+HTTP1:            enabled (internal)
+HTTP2:            enabled (nghttp2)
+HTTP3:            enabled (ngtcp2 + nghttp3)
+ECH:              no      (--enable-ech)
+HTTPS RR:         no      (--enable-httpsrr)
+SSLS-EXPORT:      no      (--enable-ssls-export)
+Protocols:        dict file ftp ftps gopher gophers http https imap imaps ipfs ipns ldap ldaps mqtt pop3 pop3s rtmp rtsp scp sftp smb smbs smtp smtps telnet tftp ws wss
+Features:         alt-svc AsynchDNS brotli gsasl HSTS HTTP2 HTTP3 HTTPS-proxy IDN IPv6 Largefile libz NTLM PSL SSL threadsafe Unicode UnixSockets zstd
