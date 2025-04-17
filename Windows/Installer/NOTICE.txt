@@ -2,17 +2,16 @@ NOTICE
 
 This self-extracting archive contains the following software:
 
-1. cURL  
-   This archive includes `curl.exe`, which is distributed under the terms of the MIT License.  
-   - You may use, distribute, and modify this software in accordance with the MIT License.  
-   - The source code for cURL can be obtained from the official website at https://curl.se/download.html  
-   - A copy of the MIT License is included in this archive.  
+1. aria2  
+   This archive includes `aria2c.exe`, which is distributed under the terms of the GNU General Public License (GPL) version 2 or later.  
+   - You may use, distribute, and modify this software in accordance with the GPL.  
+   - The source code for aria2 can be obtained from the official website at https://aria2.github.io/  
+   - A copy of the GNU General Public License is included in this archive.  
 
 2. 7-Zip
    This archive includes `7z.exe`, which is a part of the 7-Zip program licensed under the GNU Lesser General Public License (LGPL).
    - This archive uses parts of the 7-Zip program, which can be used for both commercial and non-commercial purposes.
    - The source code and more information about 7-Zip can be found at https://www.7-zip.org
-   - A copy of the GNU General Public License is included in this archive.
 
 3. PHP
    This archive includes a distribution of PHP, which is licensed under the PHP License.

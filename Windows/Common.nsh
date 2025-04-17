@@ -103,22 +103,14 @@ Section
 	Var /GLOBAL Failed
 	Var /GLOBAL GetISO
 	
-	IfFileExists "$INSTDIR\Installer\${ISO_NAME}" 0 download_iso
+	IfFileExists "$INSTDIR\Installer\${ISO_NAME}" 0 run_script
 	
 	Push "$INSTDIR\Installer\${ISO_NAME}"
 	Call FileSize
 	Pop $0
 	
-	StrCmp $0 "${ISO_SIZE_BYTES}" 0 download_iso
+	StrCmp $0 "${ISO_SIZE_BYTES}" 0 run_script
 	StrCpy $GetISO "exists+match"
-	GoTo run_script
-
-download_iso:
-	StrCmp $FromCD "" 0 run_script
-
-	# Run install.bat from the extracted folder
-	inetc::get /WEAKSECURITY /CAPTION "Downloading game ISO file" /RESUME "" /QUESTION "" "${ISO_URL}" "$INSTDIR\Installer\${ISO_NAME}" /END
-	StrCpy $GetISO "download"
 
 run_script:	
 	SetDetailsPrint both
