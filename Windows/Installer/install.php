@@ -287,9 +287,9 @@ function download($url, $expected_size, $die = true) {
 	$result_file = basename($url);
 	log_('Start download '.$result_file.' from '.$url);
 
-	$insecure = date('Y') < 2025 ? ' -k' : ''; // Wrong date -> TLS will fail (cert not yet issued) -> use insecure connection.
+	$insecure = date('Y') < 2025 ? '-k ' : ''; // Wrong date -> TLS will fail (cert not yet issued) -> use insecure connection.
 	if ($insecure) log_('Wrong current date on computer detected ('.date('Y-m-d').'). Use insecure connection.');
-	$result = run('tools\curl -# -L -o '.$insecure.escapeshellarg($result_file).' '.escapeshellarg($url));
+	$result = run('tools\curl -# -L -o '.escapeshellarg($result_file).' '.$insecure.escapeshellarg($url));
 
 	if ($result != 0) {
 		if (!$die) return;
