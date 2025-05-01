@@ -143,6 +143,20 @@ limited_fallback:
 	
 	StrCmp $GetISO "" 0 skip_download_iso
 	inetc::get /WEAKSECURITY /CAPTION "Downloading game ISO file" /RESUME "" /QUESTION "" "${ISO_URL}" "$INSTDIR\Installer\${ISO_NAME}" /END
+	
+	IfFileExists "$INSTDIR\Installer\${ISO_NAME}" 0 iso_fallback
+	
+	Push "$INSTDIR\Installer\${ISO_NAME}"
+	Call FileSize
+	Pop $0
+	
+	StrCmp $0 "${ISO_SIZE_BYTES}" unpack_iso 0
+	
+	Delete "$INSTDIR\Installer\${ISO_NAME}"
+	
+iso_fallback:
+	inetc::get /WEAKSECURITY /CAPTION "Downloading game ISO file" /RESUME "" /QUESTION "" "${ISO_URL_FALLBACK}" "$INSTDIR\Installer\${ISO_NAME}" /END
+	
 skip_download_iso:
 	
 	IfFileExists "$INSTDIR\Installer\${ISO_NAME}" 0 iso_not_found
@@ -153,6 +167,7 @@ skip_download_iso:
 	
 	StrCmp $0 "${ISO_SIZE_BYTES}" 0 iso_wrong_size
 
+unpack_iso:
 	DetailPrint 'Unpacking game ISO...'
 	nsExec::ExecToLog '"$INSTDIR\Installer\tools\7z.exe" x -aoa -o"$INSTDIR" -x@"$INSTDIR\Installer\skip.txt" "$INSTDIR\Installer\${ISO_NAME}"'
 	

@@ -1,29 +1,24 @@
 <?php
 date_default_timezone_set('UTC');
 register_shutdown_function('on_exit');
-log_('Installer v1.4 started.'.PHP_EOL);
+log_('Installer v1.5 started.'.PHP_EOL);
 title('Loading...');
 if (file_exists('installed')) unlink('installed');
 if (file_exists('failed')) unlink('failed');
 touch('closed');
 
 $setup = array(
-	'unreal' => array(
-		'iso' => 'https://archive.org/download/gt-unreal-1998/Unreal.iso',
-		'iso_size' => 477050880,
-		'patch_fallback' => 'https://api.github.com/repos/OldUnreal/Unreal-testing/releases/tags/v227k_12',
-		'patch' => 'https://api.github.com/repos/OldUnreal/Unreal-testing/releases/latest',
-		'exe' => 'Unreal.exe',
-	),
 	'ugold' => array(
-		'iso' => 'https://archive.org/download/totallyunreal/UNREAL_GOLD.ISO',
+		'iso' => 'https://files.oldunreal.net/UNREAL_GOLD.ISO',
+		'iso_fallback' => 'https://archive.org/download/totallyunreal/UNREAL_GOLD.ISO',
 		'iso_size' => 676734976,
 		'patch_fallback' => 'https://api.github.com/repos/OldUnreal/Unreal-testing/releases/tags/v227k_12',
 		'patch' => 'https://api.github.com/repos/OldUnreal/Unreal-testing/releases/latest',
 		'exe' => 'Unreal.exe',
 	),
 	'ut99' => array(
-		'iso' => 'https://archive.org/download/ut-goty/UT_GOTY_CD1.iso',
+		'iso' => 'https://files.oldunreal.net/UT_GOTY_CD1.ISO',
+		'iso_fallback' => 'https://archive.org/download/ut-goty/UT_GOTY_CD1.iso',
 		'iso_size' => 649633792,
 		'patch' => 'https://api.github.com/repos/OldUnreal/UnrealTournamentPatches/releases/latest',
 		'exe' => 'UnrealTournament.exe',
@@ -98,7 +93,26 @@ if ($cd_drive) {
 if (!$cd_drive) {
 	title('Downloading game ISO...');
 
-	get_file($config['iso'], $config['iso_size']);
+	$file = false;
+	$tries = isset($config['iso_fallback']) ? 2 : 1;
+	for ($try = 1; $try <= $tries; $try++) {
+		if ($try == 2) {
+			if ($file && file_exists($file)) unlink($file);
+			$config['iso'] = $config['iso_fallback'];
+			unset($config['iso_fallback']);
+		}
+		log_('Try obtain game ISO from '.$config['iso']);
+		$file = basename($config['iso']);
+
+		get_file($config['iso'], $config['iso_size'], $try == $tries);
+
+		if (!file_exists($file)) {
+			if ($try != $tries) continue;
+			end_('Failed get game ISO from '.$config['iso']);
+		}
+
+		if (filesize($file) == $config['iso_size']) break;
+	}
 }
 
 $win_ver = php_uname('r');
