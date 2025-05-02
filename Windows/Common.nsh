@@ -235,6 +235,8 @@ json_break_loop:
 	
 	DetailPrint 'Unpacking game files... '
 	
+	nsExec::ExecToLog '"$INSTDIR\Installer\tools\uz.exe" decompress "..\Maps\*.uz"'
+	
 	StrCpy $5 "0"
 	FindFirst $0 $1 $INSTDIR\Maps\*.unr.uz
 cnt_loop:

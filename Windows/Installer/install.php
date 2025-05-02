@@ -193,6 +193,7 @@ $progress = 'Unpacking game files... ';
 title($progress);
 
 $uzs = glob_recursive('../*.uz');
+if ($uzs) run('tools\uz decompress "..\Maps\*.uz"');
 $done = 0;
 $cnt = count($uzs);
 foreach ($uzs as $uz) {
