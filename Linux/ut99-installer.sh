@@ -114,7 +114,7 @@ deleteUnnecessaryFiles() {
 getLatestRelease() {
 	echo "Downloading latest patch release list..."
 	wget -q -O patch_latest $latest_release
-	patch_ver=$(cat ./patch_latest | jq -r '.tag_name')
+	patch_ver=$(jq -r '.tag_name' ./patch_latest)
 	echo -e "\xE2\x9C\x94 Release list downloaded"
 }
 
@@ -123,22 +123,22 @@ getArchitecture() {
 		x86_64)
 			arc_suffix='amd64'
 			system_suffix='64'
-			url_download=$(cat ./patch_latest | jq -r '.assets[0].browser_download_url')
+			url_download=$(jq -r '.assets[0].browser_download_url' ./patch_latest)
 			;;
 		aarch64)
 			arc_suffix='arm64'
 			system_suffix='ARM64'
-			url_download=$(cat ./patch_latest | jq -r '.assets[1].browser_download_url')
+			url_download=$(jq -r '.assets[1].browser_download_url' ./patch_latest)
 			;;
 		i386)
 			arc_suffix='x86'
 			system_suffix=''
-			url_download=$(cat ./patch_latest | jq -r '.assets[2].browser_download_url')
+			url_download=$(jq -r '.assets[2].browser_download_url' ./patch_latest)
 			;;
 		i686)
 			arc_suffix='x86'
 			system_suffix=''
-			url_download=$(cat ./patch_latest | jq -r '.assets[2].browser_download_url')
+			url_download=$(jq -r '.assets[2].browser_download_url' ./patch_latest)
 			;;
 		*)
 			echo "Unknown architecture"
