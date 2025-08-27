@@ -59,7 +59,7 @@ isInstalled() {
 }
 
 checkInstall() {
-	if isInstalled "$1"
+	if isInstalled "$@"
 	then
 		echo -e "\xE2\x9C\x94 $1"
 	else
