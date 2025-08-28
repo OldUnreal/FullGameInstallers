@@ -39,7 +39,7 @@ isInstalled() {
 		debian_package="$1"
 		others_package="$1"
 	fi
-	
+
 	# Ubuntu/Debian/Mint/...
 	if command -v dpkg > /dev/null 2>&1
 	then
@@ -48,7 +48,7 @@ isInstalled() {
 	elif command -v rpm > /dev/null 2>&1
 	then
 		rpm -q "$others_package" > /dev/null 2>&1
-    # arch/manjaro/...		
+	# arch/manjaro/...
 	elif command -v pacman > /dev/null 2>&1
 	then
 		pacman -Qi "$others_package" > /dev/null 2>&1
@@ -81,7 +81,7 @@ checkDependencies() {
 getUTFiles() {
 	mkdir $game_folder
 	cd $game_folder
-	
+
 	echo "Downloading $game_name files..."
 	wget -nv --show-progress "$iso_url"
 	echo -e "\xE2\x9C\x94 $game_name files downloaded"
@@ -121,29 +121,29 @@ getLatestRelease() {
 getArchitecture() {
 	case $(uname -m) in
 		x86_64)
-    		arc_suffix='amd64'
-    		system_suffix='64'
-    		url_download=$(cat ./patch_latest | jq -r '.assets[0].browser_download_url')
-    		;;
-    	aarch64)
-    		arc_suffix='arm64'
-    		system_suffix='ARM64'
-    		url_download=$(cat ./patch_latest | jq -r '.assets[1].browser_download_url')
-    		;;
+			arc_suffix='amd64'
+			system_suffix='64'
+			url_download=$(cat ./patch_latest | jq -r '.assets[0].browser_download_url')
+			;;
+		aarch64)
+			arc_suffix='arm64'
+			system_suffix='ARM64'
+			url_download=$(cat ./patch_latest | jq -r '.assets[1].browser_download_url')
+			;;
 		i386)
 			arc_suffix='x86'
-    		system_suffix=''
-    		url_download=$(cat ./patch_latest | jq -r '.assets[2].browser_download_url')
+			system_suffix=''
+			url_download=$(cat ./patch_latest | jq -r '.assets[2].browser_download_url')
 			;;
-    	i686)
-    		arc_suffix='x86'
-    		system_suffix=''
-    		url_download=$(cat ./patch_latest | jq -r '.assets[2].browser_download_url')
-    		;;
-    	*)
-    		echo "Unknown architecture"
-    		exit 0
-    		;; 	
+		i686)
+			arc_suffix='x86'
+			system_suffix=''
+			url_download=$(cat ./patch_latest | jq -r '.assets[2].browser_download_url')
+			;;
+		*)
+			echo "Unknown architecture"
+			exit 0
+			;;
 	esac
 }
 
@@ -158,7 +158,7 @@ getPatch() {
 	patch_tar="./$game_folder/patch$patch_ver.tar.bz2"
 	mv ./$game_folder/*.tar.bz2 $patch_tar
 	tar -xf $patch_tar -C ./$game_folder/ --overwrite
-	rm ./patch_latest	
+	rm ./patch_latest
 	echo -e "\xE2\x9C\x94 Patch added"
 }
 
@@ -177,54 +177,54 @@ decompressMaps() {
 			rm $file
 		else
 			echo "Failed to decompress $file"
-		fi		
+		fi
 	done
 	echo
-	echo -e "\xE2\x9C\x94 $count maps decompressed"		
+	echo -e "\xE2\x9C\x94 $count maps decompressed"
 }
 
 addLinks() {
 	read -p "Add a .desktop entry?(Y/n) " desktop_entry
 	read -p "Add a menu entry?(Y/n) " app_entry
-	
+
 	if [[ -z $desktop_entry ]]; then
-    	desktop_entry='y'
+		desktop_entry='y'
 	fi
 	if [[ -z $app_entry ]]; then
-    	app_entry='y'
+		app_entry='y'
 	fi
 
 	if [[ $desktop_entry =~ ^[Yy]$ || $app_entry =~ ^[Yy]$ ]]; then
-    	echo "Creating entry..."
-    	echo "[Desktop Entry]" > $launcher_name
-    	echo "Version=$patch_ver" >> $launcher_name
-    	echo "Name=$game_name" >> $launcher_name
-    	echo "Comment=$game_name" >> $launcher_name
-    	echo "Exec=$curr_path/$game_folder/System$system_suffix/$game_executable$arc_suffix" >> $launcher_name
+		echo "Creating entry..."
+		echo "[Desktop Entry]" > $launcher_name
+		echo "Version=$patch_ver" >> $launcher_name
+		echo "Name=$game_name" >> $launcher_name
+		echo "Comment=$game_name" >> $launcher_name
+		echo "Exec=$curr_path/$game_folder/System$system_suffix/$game_executable$arc_suffix" >> $launcher_name
 		echo "Icon=$curr_path/$game_folder/System/Unreal.ico" >> $launcher_name
 		echo "Terminal=false" >> $launcher_name
-	    echo "Type=Application" >> $launcher_name
-	    echo "Categories=ApplicationCategory;" >> $launcher_name
-	    chmod +x $launcher_name
+		echo "Type=Application" >> $launcher_name
+		echo "Categories=ApplicationCategory;" >> $launcher_name
+		chmod +x $launcher_name
 
-	    if [[ $desktop_entry =~ ^[Yy]$ ]]; then
-	    	cp $launcher_name ~/Desktop/
-	    	echo -e "\xE2\x9C\x94 .desktop entry created"
-	    fi
-		
-	    if [[ $app_entry =~ ^[Yy]$ ]]; then
-	    	cp $launcher_name ~/.local/share/applications/
-	    	echo -e "\xE2\x9C\x94 Menu entry created"
-	    fi
-	    rm $launcher_name
+		if [[ $desktop_entry =~ ^[Yy]$ ]]; then
+			cp $launcher_name ~/Desktop/
+			echo -e "\xE2\x9C\x94 .desktop entry created"
+		fi
+
+		if [[ $app_entry =~ ^[Yy]$ ]]; then
+			cp $launcher_name ~/.local/share/applications/
+			echo -e "\xE2\x9C\x94 Menu entry created"
+		fi
+		rm $launcher_name
 	fi
 }
 
 deleteDownFiles() {
 	read -p "Delete downloaded files?(Y/n) " del_download
-	
+
 	if [[ -z $del_download ]]; then
-    	del_download='y'
+		del_download='y'
 	fi
 
 	if [[ $del_download =~ ^[Yy]$ ]]; then
