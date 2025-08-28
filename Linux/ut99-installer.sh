@@ -85,15 +85,35 @@ checkDependencies() {
 }
 
 getUTFiles() {
+	if [ -d "./$game_folder" ]
+	then
+		echo -e '\xE2\x9C\x94 UT99 directory exists already'
+		return
+	fi
+
+	download=1
+	if [ -f "./$iso_name" ]
+	then
+		filesize=$(stat --format=%s "./$iso_name")
+		if [ "$filesize" -eq 649633792 ]
+		then
+			download=0
+			echo -e '\xE2\x9C\x94 UT99 iso file already downloaded'
+		fi
+	fi
+
+	if [ $download -eq 1 ]
+	then
+		echo "Downloading ${game_name} files..."
+		wget -nv --show-progress "$iso_url"
+		echo -e "\xE2\x9C\x94 ${game_name} files downloaded"
+	fi
+
 	mkdir "$game_folder"
 	cd "$game_folder"
 
-	echo "Downloading ${game_name} files..."
-	wget -nv --show-progress "$iso_url"
-	echo -e "\xE2\x9C\x94 ${game_name} files downloaded"
-
 	echo "Extracting files..."
-	7z x "$iso_name" -y
+	7z x "../$iso_name" -y
 	echo -e "\xE2\x9C\x94 Files extracted"
 	cd ..
 }
@@ -156,13 +176,18 @@ getArchitecture() {
 getPatch() {
 	getLatestRelease
 	getArchitecture
-	echo "Downloading patch ${patch_ver}"
-	wget -P "./$game_folder" -nv --show-progress "$url_download"
-	echo -e "\xE2\x9C\x94 Patch downloaded"
+	patch_tar="OldUnreal-UTPatch-${patch_ver}-Linux-${arc_suffix}.tar.bz2"
+	if [ -f "$patch_tar" ]
+	then
+		echo -e "\xE2\x9C\x94 Patch ${patch_ver} already downloaded"
+	else
+		echo "Downloading patch ${patch_ver}"
+		wget -P "./$game_folder" -nv --show-progress "$url_download"
+		echo -e "\xE2\x9C\x94 Patch downloaded"
+		mv ./"${game_folder}"/*.tar.bz2 "$patch_tar"
+	fi
 
 	echo "Extracting and adding patch..."
-	patch_tar="./${game_folder}/OldUnreal-UTPatch-${patch_ver}-Linux-${arc_suffix}.tar.bz2"
-	mv ./"${game_folder}"/*.tar.bz2 "$patch_tar"
 	tar -xf "$patch_tar" -C "./${game_folder}/" --overwrite
 	rm ./patch_latest
 	echo -e "\xE2\x9C\x94 Patch added"
@@ -235,7 +260,7 @@ deleteDownFiles() {
 
 	if [[ "$del_download" =~ ^[Yy]$ ]]; then
 		echo "Deleting downloaded files..."
-		rm "$game_folder/$iso_name"
+		rm "./$iso_name"
 		rm "$patch_tar"
 		echo -e "\xE2\x9C\x94 Downloaded files deleted"
 	fi
