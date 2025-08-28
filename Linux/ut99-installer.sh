@@ -28,6 +28,12 @@ dll
 u
 ini
 "
+	if command -v xdg-user-dir >/dev/null 2>&1
+	then
+		desktop_dir=$(xdg-user-dir DESKTOP)
+	else
+		desktop_dir=~/Desktop
+	fi
 }
 
 isInstalled() {
@@ -208,7 +214,7 @@ addLinks() {
 		chmod +x "$launcher_name"
 
 		if [[ "$desktop_entry" =~ ^[Yy]$ ]]; then
-			cp "$launcher_name" ~/Desktop/
+			cp "$launcher_name" "$desktop_dir/"
 			echo -e "\xE2\x9C\x94 .desktop entry created"
 		fi
 
@@ -237,8 +243,8 @@ deleteDownFiles() {
 
 addUninstall() {
 	echo "Creating uninstall script..."
-	echo "rm -r ../${game_folder}" > uninstall.sh
-	echo "rm ~/Desktop/${launcher_name}" >> uninstall.sh
+	echo "rm -r ../$game_folder" > uninstall.sh
+	echo "rm '${desktop_dir}/${launcher_name}'" >> uninstall.sh
 	echo "rm ~/.local/share/applications/${launcher_name}" >> uninstall.sh
 	chmod +x uninstall.sh
 	mv uninstall.sh "./${game_folder}"
