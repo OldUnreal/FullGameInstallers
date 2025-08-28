@@ -161,7 +161,7 @@ getPatch() {
 	echo -e "\xE2\x9C\x94 Patch downloaded"
 
 	echo "Extracting and adding patch..."
-	patch_tar="./${game_folder}/patch${patch_ver}.tar.bz2"
+	patch_tar="./${game_folder}/OldUnreal-UTPatch-${patch_ver}-Linux-${arc_suffix}.tar.bz2"
 	mv ./"${game_folder}"/*.tar.bz2 "$patch_tar"
 	tar -xf "$patch_tar" -C "./${game_folder}/" --overwrite
 	rm ./patch_latest
