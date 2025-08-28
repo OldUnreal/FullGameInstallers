@@ -1,7 +1,7 @@
 #!/bin/bash
 
 setVariables() {
-	curr_path=$(pwd)
+	curr_path="$(pwd)"
 	game_executable="ut-bin-"
 	icon_name="Unreal.ico"
 	launcher_name="UT.desktop"
@@ -79,15 +79,15 @@ checkDependencies() {
 }
 
 getUTFiles() {
-	mkdir $game_folder
-	cd $game_folder
+	mkdir "$game_folder"
+	cd "$game_folder"
 
 	echo "Downloading ${game_name} files..."
 	wget -nv --show-progress "$iso_url"
 	echo -e "\xE2\x9C\x94 ${game_name} files downloaded"
 
 	echo "Extracting files..."
-	7z x $iso_name -y
+	7z x "$iso_name" -y
 	echo -e "\xE2\x9C\x94 Files extracted"
 	cd ..
 }
@@ -113,7 +113,7 @@ deleteUnnecessaryFiles() {
 # Patch 469d
 getLatestRelease() {
 	echo "Downloading latest patch release list..."
-	wget -q -O patch_latest $latest_release
+	wget -q -O patch_latest "$latest_release"
 	patch_ver=$(jq -r '.tag_name' ./patch_latest)
 	echo -e "\xE2\x9C\x94 Release list downloaded"
 }
@@ -151,13 +151,13 @@ getPatch() {
 	getLatestRelease
 	getArchitecture
 	echo "Downloading patch ${patch_ver}"
-	wget -P ./$game_folder -nv --show-progress $url_download
+	wget -P "./$game_folder" -nv --show-progress "$url_download"
 	echo -e "\xE2\x9C\x94 Patch downloaded"
 
 	echo "Extracting and adding patch..."
 	patch_tar="./${game_folder}/patch${patch_ver}.tar.bz2"
-	mv ./${game_folder}/*.tar.bz2 $patch_tar
-	tar -xf $patch_tar -C ./${game_folder}/ --overwrite
+	mv ./"${game_folder}"/*.tar.bz2 "$patch_tar"
+	tar -xf "$patch_tar" -C "./${game_folder}/" --overwrite
 	rm ./patch_latest
 	echo -e "\xE2\x9C\x94 Patch added"
 }
@@ -167,14 +167,14 @@ decompressMaps() {
 	count=0
 	for file in `ls -1 ${game_folder}/Maps/*.unr.uz`
 	do
-		${game_folder}/System${system_suffix}/ucc-bin-${arc_suffix} "decompress" "${curr_path}/${file}" "-nohomedir" > /dev/null 2>&1
-		basename=`echo $file | cut -d'/' -f3 | sed 's/\.uz//'`
+		"${game_folder}/System${system_suffix}/ucc-bin-${arc_suffix}" decompress "${curr_path}/${file}" "-nohomedir" > /dev/null 2>&1
+		basename=`echo "$file" | cut -d'/' -f3 | sed 's/\.uz//'`
 		if [ -e "${game_folder}/System${system_suffix}/${basename}" ]
 		then
 			echo -n '.'
 			count=$((count + 1))
 			mv "${game_folder}/System${system_suffix}/${basename}" "${game_folder}/Maps/"
-			rm $file
+			rm "$file"
 		else
 			echo "Failed to decompress ${file}"
 		fi
@@ -187,50 +187,50 @@ addLinks() {
 	read -p "Add a .desktop entry?(Y/n) " desktop_entry
 	read -p "Add a menu entry?(Y/n) " app_entry
 
-	if [[ -z $desktop_entry ]]; then
+	if [[ -z "$desktop_entry" ]]; then
 		desktop_entry='y'
 	fi
-	if [[ -z $app_entry ]]; then
+	if [[ -z "$app_entry" ]]; then
 		app_entry='y'
 	fi
 
-	if [[ $desktop_entry =~ ^[Yy]$ || $app_entry =~ ^[Yy]$ ]]; then
+	if [[ "$desktop_entry" =~ ^[Yy]$ || "$app_entry" =~ ^[Yy]$ ]]; then
 		echo "Creating entry..."
-		echo "[Desktop Entry]" > $launcher_name
-		echo "Version=${patch_ver}" >> $launcher_name
-		echo "Name=${game_name}" >> $launcher_name
-		echo "Comment=${game_name}" >> $launcher_name
-		echo "Exec=${curr_path}/${game_folder}/System${system_suffix}/${game_executable}${arc_suffix}" >> $launcher_name
-		echo "Icon=${curr_path}/${game_folder}/System/Unreal.ico" >> $launcher_name
-		echo "Terminal=false" >> $launcher_name
-		echo "Type=Application" >> $launcher_name
-		echo "Categories=ApplicationCategory;" >> $launcher_name
-		chmod +x $launcher_name
+		echo "[Desktop Entry]" > "$launcher_name"
+		echo "Version=${patch_ver}" >> "$launcher_name"
+		echo "Name=${game_name}" >> "$launcher_name"
+		echo "Comment=${game_name}" >> "$launcher_name"
+		echo "Exec=${curr_path}/${game_folder}/System${system_suffix}/${game_executable}${arc_suffix}" >> "$launcher_name"
+		echo "Icon=${curr_path}/${game_folder}/System/Unreal.ico" >> "$launcher_name"
+		echo "Terminal=false" >> "$launcher_name"
+		echo "Type=Application" >> "$launcher_name"
+		echo "Categories=ApplicationCategory;" >> "$launcher_name"
+		chmod +x "$launcher_name"
 
-		if [[ $desktop_entry =~ ^[Yy]$ ]]; then
-			cp $launcher_name ~/Desktop/
+		if [[ "$desktop_entry" =~ ^[Yy]$ ]]; then
+			cp "$launcher_name" ~/Desktop/
 			echo -e "\xE2\x9C\x94 .desktop entry created"
 		fi
 
-		if [[ $app_entry =~ ^[Yy]$ ]]; then
-			cp $launcher_name ~/.local/share/applications/
+		if [[ "$app_entry" =~ ^[Yy]$ ]]; then
+			cp "$launcher_name" ~/.local/share/applications/
 			echo -e "\xE2\x9C\x94 Menu entry created"
 		fi
-		rm $launcher_name
+		rm "$launcher_name"
 	fi
 }
 
 deleteDownFiles() {
 	read -p "Delete downloaded files?(Y/n) " del_download
 
-	if [[ -z $del_download ]]; then
+	if [[ -z "$del_download" ]]; then
 		del_download='y'
 	fi
 
-	if [[ $del_download =~ ^[Yy]$ ]]; then
+	if [[ "$del_download" =~ ^[Yy]$ ]]; then
 		echo "Deleting downloaded files..."
-		rm $game_folder/$iso_name
-		rm $patch_tar
+		rm "$game_folder/$iso_name"
+		rm "$patch_tar"
 		echo -e "\xE2\x9C\x94 Downloaded files deleted"
 	fi
 }
@@ -241,7 +241,7 @@ addUninstall() {
 	echo "rm ~/Desktop/${launcher_name}" >> uninstall.sh
 	echo "rm ~/.local/share/applications/${launcher_name}" >> uninstall.sh
 	chmod +x uninstall.sh
-	mv uninstall.sh ./$game_folder
+	mv uninstall.sh "./${game_folder}"
 	echo -e "\xE2\x9C\x94 Uninstall script created"
 }
 
