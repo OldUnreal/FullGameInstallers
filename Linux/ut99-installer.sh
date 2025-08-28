@@ -184,8 +184,8 @@ decompressMaps() {
 }
 
 addLinks() {
-	read -p "Add a .desktop entry?(Y/n) " desktop_entry
-	read -p "Add a menu entry?(Y/n) " app_entry
+	read -r -p "Add a .desktop entry?(Y/n) " desktop_entry
+	read -r -p "Add a menu entry?(Y/n) " app_entry
 
 	if [[ -z "$desktop_entry" ]]; then
 		desktop_entry='y'
@@ -221,7 +221,7 @@ addLinks() {
 }
 
 deleteDownFiles() {
-	read -p "Delete downloaded files?(Y/n) " del_download
+	read -r -p "Delete downloaded files?(Y/n) " del_download
 
 	if [[ -z "$del_download" ]]; then
 		del_download='y'
