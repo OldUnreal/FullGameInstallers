@@ -196,7 +196,7 @@ getPatch() {
 decompressMaps() {
 	echo "Decompressing maps"
 	count=0
-	for file in `ls -1 ${game_folder}/Maps/*.unr.uz`
+	for file in "${game_folder}"/Maps/*.unr.uz
 	do
 		"${game_folder}/System${system_suffix}/ucc-bin-${arc_suffix}" decompress "${curr_path}/${file}" "-nohomedir" > /dev/null 2>&1
 		basename=`echo "$file" | cut -d'/' -f3 | sed 's/\.uz//'`
