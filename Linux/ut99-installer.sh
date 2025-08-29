@@ -244,9 +244,9 @@ deleteDownFiles() {
 addUninstall() {
 	echo "Creating uninstall script..."
 	echo 'cd "$(dirname "$0")"' > uninstall.sh
-	echo "rm -r ../${game_folder}" >> uninstall.sh
+	echo "rm -r '../${game_folder}'" >> uninstall.sh
 	echo "rm -f '${desktop_dir}/${launcher_name}'" >> uninstall.sh
-	echo "rm -f ~/.local/share/applications/${launcher_name}" >> uninstall.sh
+	echo "rm -f '~/.local/share/applications/${launcher_name}'" >> uninstall.sh
 	chmod +x uninstall.sh
 	mv uninstall.sh "./${game_folder}"
 	echo -e "\xE2\x9C\x94 Uninstall script created"
