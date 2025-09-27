@@ -80,8 +80,8 @@ checkDependencies() {
 	checkInstall "jq"
 	checkInstall "tar"
 	checkInstall "unzip"
-	checkInstall "p7zip-full" "p7zip"
-	checkInstall "wget"
+	checkInstall "p7zip-full" "p7zip-plugins"
+	checkInstall "wget" "wget2-wget"
 }
 
 getUTFiles() {
