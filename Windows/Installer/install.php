@@ -9,19 +9,32 @@ touch('closed');
 
 $setup = array(
 	'ugold' => array(
-		'iso' => 'https://files.oldunreal.net/UNREAL_GOLD.ISO',
-		'iso_fallback' => 'https://archive.org/download/totallyunreal/UNREAL_GOLD.ISO',
-		'iso_size' => 676734976,
+		'iso' => array(
+			'https://files.oldunreal.net/UNREAL_GOLD.ISO' => 676734976,
+			'https://archive.org/download/totallyunreal/UNREAL_GOLD.ISO' => 676734976,
+		),
 		'patch_fallback' => 'https://api.github.com/repos/OldUnreal/Unreal-testing/releases/tags/v227k_12',
 		'patch' => 'https://api.github.com/repos/OldUnreal/Unreal-testing/releases/latest',
 		'exe' => 'Unreal.exe',
 	),
 	'ut99' => array(
-		'iso' => 'https://files.oldunreal.net/UT_GOTY_CD1.ISO',
-		'iso_fallback' => 'https://archive.org/download/ut-goty/UT_GOTY_CD1.iso',
-		'iso_size' => 649633792,
+		'iso' => array(
+			'https://files.oldunreal.net/UT_GOTY_CD1.ISO' => 649633792,
+			'https://archive.org/download/ut-goty/UT_GOTY_CD1.iso' => 649633792,
+		),
 		'patch' => 'https://api.github.com/repos/OldUnreal/UnrealTournamentPatches/releases/latest',
 		'exe' => 'UnrealTournament.exe',
+	),
+	'ut2004' => array(
+		'iso' => array(
+			'https://files.oldunreal.net/UT2004.ISO' => 2995322880,
+			'https://files2.oldunreal.net/UT2004.ISO' => 2995322880,
+			'https://archive.org/download/ut-2004/UT2004.ISO' => 3751510016,
+		),
+		'patch' => 'https://api.github.com/repos/OldUnreal/UT2004Patches/releases/latest',
+		'patch' => 'https://api.github.com/repos/OldUnreal/UnrealTournamentPatches/releases/latest', // dbg
+		'exe' => 'UT2004.exe',
+		'deny_from_cd' => true,
 	),
 );
 $game = isset($argv[1]) ? $argv[1] : '';
@@ -35,6 +48,8 @@ foreach ($argv as $arg) {
 }
 
 $config = $setup[$game];
+
+if (isset($config['deny_from_cd'])) $from_cd = false;
 
 $cd_drive = false;
 if ($from_cd) {
@@ -93,25 +108,32 @@ if ($cd_drive) {
 if (!$cd_drive) {
 	title('Downloading game ISO...');
 
-	$file = false;
-	$tries = isset($config['iso_fallback']) ? 2 : 1;
-	for ($try = 1; $try <= $tries; $try++) {
-		if ($try == 2) {
-			if ($file && file_exists($file)) unlink($file);
-			$config['iso'] = $config['iso_fallback'];
-			unset($config['iso_fallback']);
+	$iso_name = false;
+	foreach ($config['iso'] as $iso_url => $iso_size) {
+		$iso_name = basename($iso_url);
+		if (file_exists($iso_name) && size_same(filesize($iso_name), $iso_size)) {
+			break;
 		}
-		log_('Try obtain game ISO from '.$config['iso']);
-		$file = basename($config['iso']);
+		$iso_name = false;
+	}
+	if (!$iso_name) {
+		$try = 0;
+		$tries = count($config['iso']);
+		foreach ($config['iso'] as $iso_url => $iso_size) {
+			$try++;
+			if ($iso_name && file_exists($iso_name)) unlink($iso_name);
+			log_('Try obtain game ISO from '.$iso_url);
+			$iso_name = basename($iso_url);
 
-		get_file($config['iso'], $config['iso_size'], $try == $tries);
+			get_file($iso_url, $iso_size, $try == $tries);
 
-		if (!file_exists($file)) {
-			if ($try != $tries) continue;
-			end_('Failed get game ISO from '.$config['iso']);
+			if (!file_exists($iso_name)) {
+				if ($try != $tries) continue;
+				end_('Failed get game ISO from '.$iso_url);
+			}
+
+			if (size_same(filesize($iso_name), $iso_size)) break;
 		}
-
-		if (filesize($file) == $config['iso_size']) break;
 	}
 }
 
@@ -176,7 +198,69 @@ $cmd_7z = 'tools\7z x -aoa -o.. -bsp1 ';
 if (!$cd_drive) {
 	title('Unpacking game ISO...');
 
-	run($cmd_7z.'-x@skip.txt '.escapeshellarg(basename($config['iso'])));
+	if ($game == 'ut2004') {
+		run('tools\7z e -aoa -ocabs -bsp1 -ir!*.cab -ir!*.hdr '.escapeshellarg($iso_name));
+
+		run('tools\unshield -d data x cabs/data1.cab');
+
+		function moveAllRecursive($src, $dst) {
+			$src = rtrim($src, '\\/') ;
+			$dst = rtrim($dst, '\\/') ;
+
+			if (!is_dir($dst) && !mkdir($dst, 0777, true)) {
+				log_("Failed to create destination directory: $dst");
+				return;
+			}
+
+			foreach (glob($src.'/*') as $entry) {
+				$base = basename($entry);
+				$dstPath = $dst.DIRECTORY_SEPARATOR.$base;
+
+				if (is_dir($entry)) {
+					moveAllRecursive($entry, $dstPath);
+				} elseif (is_file($entry)) {
+					if (!@rename($entry, $dstPath)) {
+						if (file_exists($dstPath)) {
+							if (!@unlink($dstPath)) {
+								log_("Cannot delete existing file: $dstPath");
+							} elseif (!@rename($entry, $dstPath)) {
+								log_("Failed to move file after deleting existing: $entry => $dstPath");
+							}
+						} else {
+							log_("Failed to move file: $entry => $dstPath");
+						}
+					}
+				}
+			}
+		}
+
+		$mapping = array(
+			'All_Animations' => 'Animations',
+			'All_Benchmark' => 'Benchmark',
+			'All_ForceFeedback' => 'ForceFeedback',
+			'All_Help' => 'Help',
+			'All_KarmaData' => 'KarmaData',
+			'All_Maps' => 'Maps',
+			'All_Music' => 'Music',
+			'All_StaticMeshes' => 'StaticMeshes',
+			'All_Textures' => 'Textures',
+			'All_UT2004.EXE' => 'System',
+			'All_Web' => 'Web',
+			'English_Manual' => 'Manual',
+			'English_Sounds_Speech_System_Help' => '',
+			'US_License.int' => 'System',
+		);
+		foreach ($mapping as $from => $to) {
+			if (!file_exists('data/'.$from)) continue;
+			log_($from.' -> '.$to);
+			moveAllRecursive('data/'.$from, '../'.$to);
+		}
+
+		run('rmdir /S /Q cabs');
+		run('rmdir /S /Q data');
+	} else {
+		run($cmd_7z.'-x@skip.txt '.escapeshellarg($iso_name));
+	}
 }
 
 if ($game == 'ut99') {
@@ -236,7 +320,7 @@ title('Remove downloaded files...');
 
 if (!$keep_files) {
 	unlink(basename($config['patch']));
-	unlink(basename($config['iso']));
+	unlink($iso_name);
 	unlink(basename($patch['browser_download_url']));
 }
 
@@ -282,7 +366,7 @@ function get_file($url, $expected_size, $die = true) {
 		} else {
 			$filesize = filesize($file);
 			log_('Found '.$file.' of size '.human_size($filesize));
-			if ($filesize == $expected_size) {
+			if (size_same($filesize, $expected_size)) {
 				log_('Size match to expected size. Use that file.');
 			} else {
 				log_('Size not match to expected size ('.human_size($expected_size).'). Remove file and try download it again.');
@@ -298,6 +382,11 @@ function get_file($url, $expected_size, $die = true) {
 
 function json_error($json, $error) {
 	end_('Unexpected JSON data ('.$error.'):'.PHP_EOL.'--- start ---'.PHP_EOL.$json.PHP_EOL.'--- end ---');
+}
+
+function size_same($filesize, $expected_size) {
+	// Hack for compare file sizes bigger then 2 GB on 32-bit PHP.
+	return ($filesize & 0xFFFFFFFF) == ($expected_size & 0xFFFFFFFF);
 }
 
 function download($url, $expected_size, $die = true) {
@@ -322,7 +411,7 @@ function download($url, $expected_size, $die = true) {
 	if ($expected_size < 0) return;
 
 	$filesize = filesize($result_file);
-	if ($filesize != $expected_size) {
+	if (!size_same($filesize, $expected_size)) {
 		log_('File size of '.$result_file.' is '.human_size($filesize).
 			', which not match expect size '.human_size($expected_size));
 		if ($filesize < 16) {

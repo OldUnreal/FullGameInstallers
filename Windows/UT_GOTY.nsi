@@ -7,11 +7,14 @@
 !define GAME_EXE "UnrealTournament.exe"
 !define ISO_NAME "UT_GOTY_CD1.iso"
 !define ISO_URL "https://files.oldunreal.net/UT_GOTY_CD1.ISO"
-!define ISO_URL_FALLBACK "https://archive.org/download/ut-goty/UT_GOTY_CD1.iso"
+!define ISO_URL2 "https://archive.org/download/ut-goty/UT_GOTY_CD1.iso"
 !define ISO_SIZE_BYTES 649633792
+!define ISO_SIZE_BYTES2 649633792
 !define PATCH_URL "https://api.github.com/repos/OldUnreal/UnrealTournamentPatches/releases/latest"
 !define NOTICE_FILE "NOTICE.txt"
-!define ADD_SIZE_BYTES 1363148
+!define ADD_SIZE_KB 1363148
+!define PROTOCOL "unreal"
+!define UMOD "umod"
 !define BP4 1
 
 OutFile "UT_GOTY.exe"

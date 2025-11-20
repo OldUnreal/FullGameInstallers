@@ -1,0 +1,44 @@
+Welcome! You are about to begin the installation of Unreal Tournament 2004 ECE.
+
+This game requires 15.0 GB of disk space for setup.
+
+Game data and patches will be downloaded from the Internet.
+
+The installer will apply the latest community patch.
+
+Links to ISO files are approved by Epic.
+
+Please specify the installation path for the game on next step.
+
+NOTICE
+
+This self-extracting archive contains the following software:
+
+1. GNU Wget
+   This archive includes `wget.exe`, which is distributed under the terms of the GNU General Public License (GPL).
+   - You may use, distribute, and modify this software in accordance with the GPL.
+   - The source code for Wget can be obtained from the GNU website or by visiting https://gnuwin32.sourceforge.net/packages/wget.htm
+   - A copy of the GNU General Public License is included in this archive.
+
+2. 7-Zip
+   This archive includes `7z.exe`, which is a part of the 7-Zip program licensed under the GNU Lesser General Public License (LGPL).
+   - This archive uses parts of the 7-Zip program, which can be used for both commercial and non-commercial purposes.
+   - The source code and more information about 7-Zip can be found at https://www.7-zip.org
+
+3. PHP
+   This archive includes a distribution of PHP, which is licensed under the PHP License.
+   - You may use this software in accordance with the terms of the PHP License.
+   - The source code and additional information about PHP can be found at https://www.php.net
+   - A copy of the PHP License is included in this archive.
+
+4. NSIS (Nullsoft Scriptable Install System)
+   This archive was created using the NSIS tool, an open-source system to create Windows installers.
+   - For more information on NSISs licensing terms and usage, please visit https://nsis.sourceforge.io
+   
+5. Unshield  
+   This archive includes `unshield.exe`, a tool and library to extract CAB files from InstallShield installers, which is distributed under the MIT License.  
+   - You may use, distribute, and modify this software under the terms of the MIT License.  
+   - The source code for Unshield is hosted on GitHub at https://github.com/twogood/unshield
+   - A copy of the MIT License is included in this archive.  
+
+By including these tools, we comply with the requirements of their respective licenses and provide access to their source codes for transparency and legal compliance.

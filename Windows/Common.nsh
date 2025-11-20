@@ -59,20 +59,20 @@ Section "Install the uninstaller" SecUninstaller
 	WriteRegDWORD HKLM "${UNINSTALLER_KEY}" "NoModify" 1
 SectionEnd
 
-Section "Register the game as the handler for the unreal:// protocol"
-	; Register game executable as handler for unreal:// protocol
+Section "Register the game as the handler for the ${PROTOCOL}:// protocol"
 	StrCpy $ProtocolHandler "1"
 SectionEnd
 
-Section "Register the game as the handler for the UMOD files"
-	; Register game executable as handler for unreal:// protocol
+Section "Register the game as the handler for the ${UMOD} files"
 	StrCpy $UmodHandler "1"
 SectionEnd
 
+!ifndef DENY_FROM_CD
 Section /o "Install the game from a compatible CD, if one is found"
 	; Leave on disk ISO and patch files, downloaded from internet
 	StrCpy $FromCD "from_cd"
 SectionEnd
+!endif
 	
 Section /o "Keep the installer files"
 	; Leave on disk ISO and patch files, downloaded from internet
@@ -82,7 +82,7 @@ SectionEnd
 # Define the installer's section
 Section
 	# Specify the additional space needed (in KB)
-	AddSize "${ADD_SIZE_BYTES}"	; Add 1.3GB to the required space
+	AddSize "${ADD_SIZE_KB}"	; Add 1.3GB to the required space
 
 	# Create the installation directory
 	SetOutPath "$INSTDIR"
@@ -106,10 +106,10 @@ Section
 	IfFileExists "$INSTDIR\Installer\${ISO_NAME}" 0 run_script
 	
 	Push "$INSTDIR\Installer\${ISO_NAME}"
-	Call FileSize
+	Call FileSizeIso
 	Pop $0
 	
-	StrCmp $0 "${ISO_SIZE_BYTES}" 0 run_script
+	StrCmp $0 "0" run_script 0
 	StrCpy $GetISO "exists+match"
 
 run_script:	
@@ -144,36 +144,125 @@ limited_fallback:
 	StrCmp $GetISO "" 0 skip_download_iso
 	inetc::get /WEAKSECURITY /CAPTION "Downloading game ISO file" /RESUME "" /QUESTION "" "${ISO_URL}" "$INSTDIR\Installer\${ISO_NAME}" /END
 	
-	IfFileExists "$INSTDIR\Installer\${ISO_NAME}" 0 iso_fallback
+	IfFileExists "$INSTDIR\Installer\${ISO_NAME}" 0 iso_2
 	
 	Push "$INSTDIR\Installer\${ISO_NAME}"
 	Call FileSize
 	Pop $0
 	
-	StrCmp $0 "${ISO_SIZE_BYTES}" unpack_iso 0
+	StrCpy $1 "${ISO_SIZE_BYTES}"
+	IntOp $1 $1 + 0
+	StrCmp $0 $1 unpack_iso 0
 	
 	Delete "$INSTDIR\Installer\${ISO_NAME}"
 	
-iso_fallback:
-	inetc::get /WEAKSECURITY /CAPTION "Downloading game ISO file" /RESUME "" /QUESTION "" "${ISO_URL_FALLBACK}" "$INSTDIR\Installer\${ISO_NAME}" /END
+iso_2:
+!ifdef ISO_SIZE_BYTES2
+	inetc::get /WEAKSECURITY /CAPTION "Downloading game ISO file" /RESUME "" /QUESTION "" "${ISO_URL2}" "$INSTDIR\Installer\${ISO_NAME}" /END
 	
+	IfFileExists "$INSTDIR\Installer\${ISO_NAME}" 0 iso_3
+	
+	Push "$INSTDIR\Installer\${ISO_NAME}"
+	Call FileSize
+	Pop $0
+	
+	StrCpy $1 "${ISO_SIZE_BYTES2}"
+	IntOp $1 $1 + 0
+	StrCmp $0 $1 unpack_iso 0
+	
+	Delete "$INSTDIR\Installer\${ISO_NAME}"
+!endif
+
+iso_3:
+!ifdef ISO_SIZE_BYTES3
+	inetc::get /WEAKSECURITY /CAPTION "Downloading game ISO file" /RESUME "" /QUESTION "" "${ISO_URL3}" "$INSTDIR\Installer\${ISO_NAME}" /END
+!endif
 skip_download_iso:
 	
 	IfFileExists "$INSTDIR\Installer\${ISO_NAME}" 0 iso_not_found
 	
 	Push "$INSTDIR\Installer\${ISO_NAME}"
-	Call FileSize
+	Call FileSizeIso
 	Pop $0
 	
-	StrCmp $0 "${ISO_SIZE_BYTES}" 0 iso_wrong_size
+	StrCmp $0 "0" iso_wrong_size 0
 
 unpack_iso:
 	DetailPrint 'Unpacking game ISO...'
+	StrCmp "${GAME}" "ut2004" unpack_2004 0
 	nsExec::ExecToLog '"$INSTDIR\Installer\tools\7z.exe" x -aoa -o"$INSTDIR" -x@"$INSTDIR\Installer\skip.txt" "$INSTDIR\Installer\${ISO_NAME}"'
 	
 	StrCmp "${GAME}" "ut99" 0 skip_bp4
 	DetailPrint 'Unpacking Bonus Pack 4...'	
 	nsExec::ExecToLog '"$INSTDIR\Installer\tools\7z.exe" x -aoa -o"$INSTDIR" "$INSTDIR\Installer\utbonuspack4-zip.7z"'
+	Goto skip_bp4
+	
+unpack_2004:
+	nsExec::ExecToLog '"$INSTDIR\Installer\tools\7z.exe" e -aoa -o"$INSTDIR\Installer\cabs" -ir!*.cab -ir!*.hdr "$INSTDIR\Installer\${ISO_NAME}"'
+	
+	${StrRep} $0 $INSTDIR "\\" "/"
+	ExecWait '"$INSTDIR\Installer\tools\unshield.exe" -d "$INSTDIR\Installer\data" x "$0/Installer/cabs/data1.cab"' ; nsExec::ExecToLog kill insstaller
+	
+	RMDir /r "$INSTDIR\Installer\cabs"
+	
+	Push "$INSTDIR\Animations"		; new dest
+	Push "$INSTDIR\Installer\data\All_Animations"		; new source
+	Call MoveDir
+	
+	Push "$INSTDIR\Benchmark"		; new dest
+	Push "$INSTDIR\Installer\data\All_Benchmark"		; new source
+	Call MoveDir
+	
+	Push "$INSTDIR\ForceFeedback"		; new dest
+	Push "$INSTDIR\Installer\data\All_ForceFeedback"		; new source
+	Call MoveDir
+	
+	Push "$INSTDIR\Help"		; new dest
+	Push "$INSTDIR\Installer\data\All_Help"		; new source
+	Call MoveDir
+	
+	Push "$INSTDIR\KarmaData"		; new dest
+	Push "$INSTDIR\Installer\data\All_KarmaData"		; new source
+	Call MoveDir
+	
+	Push "$INSTDIR\Maps"		; new dest
+	Push "$INSTDIR\Installer\data\All_Maps"		; new source
+	Call MoveDir
+	
+	Push "$INSTDIR\Music"		; new dest
+	Push "$INSTDIR\Installer\data\All_Music"		; new source
+	Call MoveDir
+	
+	Push "$INSTDIR\StaticMeshes"		; new dest
+	Push "$INSTDIR\Installer\data\All_StaticMeshes"		; new source
+	Call MoveDir
+	
+	Push "$INSTDIR\Textures"		; new dest
+	Push "$INSTDIR\Installer\data\All_Textures"		; new source
+	Call MoveDir
+	
+	Push "$INSTDIR\System"		; new dest
+	Push "$INSTDIR\Installer\data\All_UT2004.EXE"		; new source
+	Call MoveDir
+	
+	Push "$INSTDIR\Web"		; new dest
+	Push "$INSTDIR\Installer\data\All_Web"		; new source
+	Call MoveDir
+	
+	Push "$INSTDIR\Manual"		; new dest
+	Push "$INSTDIR\Installer\data\English_Manual"		; new source
+	Call MoveDir
+	
+	Push "$INSTDIR"		; new dest
+	Push "$INSTDIR\Installer\data\English_Sounds_Speech_System_Help"		; new source
+	Call MoveDir
+	
+	Push "$INSTDIR\System"		; new dest
+	Push "$INSTDIR\Installer\data\US_License.int"		; new source
+	Call MoveDir
+	
+	RMDir /r "$INSTDIR\Installer\data"
+	
 skip_bp4:
 
 	Var /GLOBAL WinVer
@@ -183,6 +272,7 @@ skip_bp4:
 	${If} ${AtMostWinXP} ; Running on XP or older. Surely not running on Vista. Maybe 98, or even 95.
 		StrCpy $WinVer "-WindowsXP"
 	${EndIf}
+
 skip_check_xp:
 
 	Delete "$INSTDIR\Installer\tmp"
@@ -350,21 +440,81 @@ finish:
 	
 	StrCmp $ProtocolHandler "" skip_protocol_handler
 
-	WriteRegStr HKCR "unreal" "" "URL:unreal Protocol"
-	WriteRegStr HKCR "unreal" "URL Protocol" ""
-	WriteRegStr HKCR "unreal\shell\open\command" "" '"$INSTDIR\System\${GAME_EXE}" "%1"'
+	WriteRegStr HKCR "${PROTOCOL}" "" "URL:${PROTOCOL} Protocol"
+	WriteRegStr HKCR "${PROTOCOL}" "URL Protocol" ""
+	WriteRegStr HKCR "${PROTOCOL}\shell\open\command" "" '"$INSTDIR\System\${GAME_EXE}" "%1"'
 skip_protocol_handler:
 
 	StrCmp $UmodHandler "" skip_umod_handler
 
-	WriteRegStr HKCR ".umod" "" "${GAME}.UModFile"
-	WriteRegStr HKCR "${GAME}.UModFile" "" "UMod File"
-	WriteRegStr HKCR "${GAME}.UModFile\DefaultIcon" "" "$INSTDIR\System\Setup.exe,0"
-	WriteRegStr HKCR "${GAME}.UModFile\shell\open\command" "" '"$INSTDIR\System\Setup.exe" "%1"'
+	WriteRegStr HKCR ".${UMOD}" "" "${GAME}.${UMOD}File"
+	WriteRegStr HKCR "${GAME}.${UMOD}File" "" "${UMOD} File"
+	WriteRegStr HKCR "${GAME}.${UMOD}File\DefaultIcon" "" "$INSTDIR\System\Setup.exe,0"
+	WriteRegStr HKCR "${GAME}.${UMOD}File\shell\open\command" "" '"$INSTDIR\System\Setup.exe" "%1"'
 skip_umod_handler:
 
 SectionEnd
 
+;----------------------------------------------------------------
+; Function: MoveDir
+; Stack In: destFolder, sourceFolder
+;   Pop $0 = sourceFolder
+;   Pop $1 = destFolder
+;----------------------------------------------------------------
+Function MoveDir
+	;— Pop args: sourceFolder → $0, destFolder → $1 —
+	Exch $0
+	Exch
+	Exch $1
+	Push $2
+	Push $3
+
+	;— Ensure destination exists —
+	CreateDirectory "$1"
+
+	;— Enumerate source —
+	FindFirst $2 $3 "$0\*"
+	IfErrors .Done 0
+
+.loop:
+	;— Skip “.” and “..” —
+	StrCmp $3 "" .Done 0
+	StrCmp $3 "." .Next 0
+	StrCmp $3 ".." .Next 0
+
+	StrCpy $4 "$0\$3"		; sourceItem
+	StrCpy $5 "$1\$3"		; destItem
+
+	;— Directory? —
+	IfFileExists "$4\*.*" .IsDir 0
+
+	; —— File branch —— 
+	; If dest exists, delete it first
+	IfFileExists "$5" 0 +2
+		Delete "$5"
+	Rename "$4" "$5"
+	Goto .Next
+
+	; —— Directory branch —— 
+	.IsDir:
+		Push "$5"		; new dest
+		Push "$4"		; new source
+		Call MoveDir
+
+	;— Next entry —
+	.Next:
+		FindNext $2 $3
+		IfErrors 0 .loop
+
+	;— Cleanup —
+	.Done:
+		FindClose $2
+	
+	Pop $3
+	Pop $2
+	Pop $1
+	Pop $0
+FunctionEnd
 
 Function FileSize
  
@@ -373,6 +523,36 @@ Function FileSize
 	FileOpen $1 $0 "r"
 	FileSeek $1 0 END $0
 	FileClose $1
+	Pop $1
+	DetailPrint "File size: $0"
+	Exch $0
+ 
+FunctionEnd
+
+Function FileSizeIso
+ 
+	Call FileSize
+	Exch $0
+	Push $1
+	
+	DetailPrint "ISO file size: $0"
+	
+	StrCpy $1 "${ISO_SIZE_BYTES}"
+	IntOp $1 $1 + 0
+	StrCmp $0 $1 FileSizeIso_return 0
+	!ifdef ISO_SIZE_BYTES2
+		StrCpy $1 "${ISO_SIZE_BYTES2}"
+		IntOp $1 $1 + 0
+		StrCmp $0 $1 FileSizeIso_return 0
+	!endif
+	!ifdef ISO_SIZE_BYTES3
+		StrCpy $1 "${ISO_SIZE_BYTES3}"
+		IntOp $1 $1 + 0
+		StrCmp $0 $1 FileSizeIso_return 0
+	!endif
+	StrCpy $0 "0"
+FileSizeIso_return:
+
 	Pop $1
 	Exch $0
  
@@ -410,13 +590,13 @@ remove:
 	StrCmp $0 '"$INSTDIR\System\${GAME_EXE}" "%1"' 0 +2
 	DeleteRegKey HKCR "unreal"
 	
-	ReadRegStr $0 HKCR "${GAME}.UModFile\shell\open\command" ""
+	ReadRegStr $0 HKCR "${GAME}.${UMOD}File\shell\open\command" ""
 	StrCmp $0 '"$INSTDIR\System\${GAME_EXE}" "%1"' 0 skip_unreg_umod
-	DeleteRegKey HKCR "${GAME}.UModFile"
+	DeleteRegKey HKCR "${GAME}.${UMOD}File"
 	
-	ReadRegStr $0 HKCR ".umod" ""
-	StrCmp $0 '${GAME}.UModFile' 0 +2
-	DeleteRegValue HKCR ".umod" ""
+	ReadRegStr $0 HKCR ".${UMOD}" ""
+	StrCmp $0 '${GAME}.${UMOD}File' 0 +2
+	DeleteRegValue HKCR ".${UMOD}" ""
 skip_unreg_umod:
 	
 	; Remove registry entries for the uninstaller registration
