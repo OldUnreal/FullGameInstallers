@@ -1,5 +1,9 @@
 Welcome! You are about to begin the installation of Unreal Tournament 2004 ECE.
 
+The Epic Games Terms of Service apply to the use and distribution of the game.
+Please read the terms of service carefully:
+https://legal.epicgames.com/en-US/epicgames/tos
+
 This game requires 15.0 GB of disk space for setup.
 
 Game data and patches will be downloaded from the Internet.

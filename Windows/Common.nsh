@@ -25,6 +25,12 @@ ${StrRep}
 
 !define MUI_ABORTWARNING
 
+!define MUI_LICENSEPAGE_TEXT_BOTTOM "You must accept the Epic Games Terms of Service to continue."
+
+!define MUI_LICENSEPAGE_RADIOBUTTONS
+!define MUI_LICENSEPAGE_RADIOBUTTONS_TEXT_ACCEPT  "I accept the Epic Games Terms of Service"
+!define MUI_LICENSEPAGE_RADIOBUTTONS_TEXT_DECLINE "I do not accept the Epic Games Terms of Service"
+
 # Display the license agreement page
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_LICENSE "${NOTICE_FILE}"
@@ -86,6 +92,10 @@ Section
 
 	# Create the installation directory
 	SetOutPath "$INSTDIR"
+	
+	!ifdef DENY_FROM_CD
+		StrCpy $FromCD ""
+	!endif
 
 	# Extract the entire "Installer" folder to the installation directory
 	!ifdef BP4
