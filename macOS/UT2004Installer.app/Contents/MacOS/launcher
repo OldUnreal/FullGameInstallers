@@ -1,5 +1,5 @@
 #!/bin/bash
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-COMMAND="$SCRIPT_DIR/../Resources/Installer.command"
+COMMAND="$SCRIPT_DIR/../Resources/UT2004-Installer.command"
 open -a Terminal "$COMMAND"

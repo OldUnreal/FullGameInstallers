@@ -10,9 +10,6 @@ RESET="\033[0m"
 GAME_NAME="UT2004"
 USER_SUPPORT_DIR="$HOME/Library/Application Support/"
 
-# Download URL for the cab extraction tool
-UNSHIELD_URL="https://raw.githubusercontent.com/OldUnreal/FullGameInstallers/refs/heads/master/macOS/unshield"
-
 # Hardcoded URLs for game isos
 ISO_URLS=(
 	"https://files.oldunreal.net/UT2004.ISO"
@@ -82,6 +79,7 @@ download_game() {
 }
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+APP_DIR="$(cd "$(dirname "$0")" && cd .. && pwd)"
 
 # step 0: force the user to accept the epic terms of service
 clear
@@ -130,29 +128,6 @@ else
 	exit 1
 fi
 
-# step 2: download unshield if it's not here already
-if [[ ! -f "./unshield" ]]
-then
-	printf "${GREEN}>>> Downloading unshield${RESET}\n"
-	if curl \
-		   -L --fail --continue-at - \
-		   --show-error --progress-bar \
-		   -o "$SCRIPT_DIR/unshield.tmp" \
-		   "${UNSHIELD_URL}"
-	then
-		mv "$SCRIPT_DIR/unshield.tmp" "$SCRIPT_DIR/unshield"
-		echo "unshield downloaded"
-	else
-		printf "${RED}Download failed${RESET}\n"
-		exit 1
-	fi
-fi
-
-if [[ ! -x "$SCRIPT_DIR/unshield" ]]
-then
-	chmod +x "$SCRIPT_DIR/unshield"
-fi
-
 # step 2: mount the game iso
 printf "${GREEN}>>> Mounting game image: ${TMP_ISO} => ${MOUNT_POINT}${RESET}\n"
 # create a unique mount point name
@@ -181,7 +156,7 @@ done
 printf "${GREEN}>>> Extracting game files${RESET}\n"
 cd "$USER_SUPPORT_DIR/$GAME_NAME.tmp"
 /usr/bin/hdiutil detach "$MOUNT_POINT"
-if $SCRIPT_DIR/unshield x *.hdr
+if $APP_DIR/MacOS/unshield x *.hdr
 then
 	echo "Extraction succeeded"
 else
