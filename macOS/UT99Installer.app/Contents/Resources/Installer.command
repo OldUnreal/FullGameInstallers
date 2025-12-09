@@ -151,8 +151,8 @@ cp -r Sounds "${USER_SUPPORT_DIR}${GAME_NAME}/"
 cp -r Textures "${USER_SUPPORT_DIR}${GAME_NAME}/"
 
 # delete textures that are also in the main app bundle
-rm "${USER_SUPPORT_DIR}${GAME_NAME}/Textures/UWindowFonts.utx"
-rm "${USER_SUPPORT_DIR}${GAME_NAME}/Textures/LadderFonts.utx"
+rm "${USER_SUPPORT_DIR}${GAME_NAME}/UWindowFonts.utx"
+rm "${USER_SUPPORT_DIR}${GAME_NAME}/LadderFonts.utx"
 
 /usr/bin/hdiutil detach "$MOUNT_POINT"
 
