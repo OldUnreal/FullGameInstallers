@@ -81,7 +81,7 @@ checkDependencies() {
 	checkInstall "tar"
 	checkInstall "unzip"
 	checkInstall "p7zip-full" "p7zip"
-	checkInstall "wget"
+	checkInstall "wget" "wget2"
 }
 
 getUTFiles() {
