@@ -13,11 +13,19 @@ if [ -z "${fore[*]:-}" ] \
   exit 1
 fi
 
+SEVENZIP_BIN="7z"
+WGET_BIN="wget"
+
 installer_step::check_dependencies() {
   MISSING_DEPENDENCIES=()
 
   if ! type 7z &>/dev/null; then
-    MISSING_DEPENDENCIES+=("p7zip-full or p7zip (depends on distro)")
+    if ! type 7zz &>/dev/null; then
+      MISSING_DEPENDENCIES+=("p7zip or p7zip-full or 7zip-standalone-all (depends on distro)")
+    else
+      # shellcheck disable=SC2034 # Used in sourced script
+      SEVENZIP_BIN="7zz"
+    fi
   fi
 
   if ! type jq &>/dev/null; then
@@ -29,7 +37,13 @@ installer_step::check_dependencies() {
   fi
 
   if ! type wget &>/dev/null; then
-    MISSING_DEPENDENCIES+=("wget")
+    if ! type wget2 &>/dev/null; then
+      MISSING_DEPENDENCIES+=("wget or wget2")
+    else
+      # Fedora is using wget2
+      # shellcheck disable=SC2034 # Used in sourced script
+      WGET_BIN="wget2"
+    fi
   fi
 
   if ! type unzip &>/dev/null; then

@@ -40,5 +40,5 @@ installer_step::create_install_directory() {
 
   # Create a display version of the install directory
   INSTALL_DIRECTORY_DISPLAY="${INSTALL_DIRECTORY}"
-  [[ "${INSTALL_DIRECTORY_DISPLAY}" =~ ^"${HOME}"(/|$) ]] && INSTALL_DIRECTORY_DISPLAY="~${INSTALL_DIRECTORY_DISPLAY#"${HOME}"}"
+  ([[ "${INSTALL_DIRECTORY_DISPLAY}" =~ ^"${HOME}"(/|$) ]] && INSTALL_DIRECTORY_DISPLAY="~${INSTALL_DIRECTORY_DISPLAY#"${HOME}"}") || true
 }

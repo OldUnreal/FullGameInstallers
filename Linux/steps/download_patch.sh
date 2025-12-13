@@ -14,6 +14,7 @@ fi
 # Ensure required variables exist
 if [ -z "${fore[*]:-}" ] \
    || [ -z "${style[*]:-}" ] \
+   || [ -z "${WGET_BIN:-}" ] \
    || [ -z "${INSTALL_DIRECTORY:-}" ] \
    || [ -z "${PATCH_METADATA_URL:-}" ] \
    || [ -z "${INSTALLATION_MODE:-}" ]; then
@@ -31,7 +32,7 @@ fi
 installer_step::download_patch() {
   mkdir -p "${INSTALL_DIRECTORY}/Installer"
 
-  PATCH_METADATA_JSON=$(wget "${PATCH_METADATA_URL}" -O - 2>/dev/null || installer::abort_on_error "Unable to fetch patch information from GitHub. Try again later.");
+  PATCH_METADATA_JSON=$("${WGET_BIN}" "${PATCH_METADATA_URL}" -O - 2>/dev/null || installer::abort_on_error "Unable to fetch patch information from GitHub. Try again later.");
 
   JQ_FILTER='.assets[] | select(.browser_download_url | ascii_downcase | contains("'$(installer_step::download_patch::metadata_filter)'"))'
 

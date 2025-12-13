@@ -16,9 +16,12 @@ The installer will detect if `zenity` is available, and will provide a UI during
 ## Dependencies
 
 The script has the following dependencies:
-  - bash
-  - coreutils
-  - jq
-  - tar
-  - unzip
-  - wget
+  - `bash`
+  - `coreutils`
+  - `jq`
+  - `tar`
+  - `unzip`
+  - `p7zip-full` (alternatively: `p7zip` \[Arch\], `7zip-standalone-all` \[Fedora\])
+  - `wget` (`wget2` \[Fedora\])
+
+Please refer to your distro's documentation on how to install these dependencies.

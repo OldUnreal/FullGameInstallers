@@ -9,6 +9,7 @@ fi
 # Ensure required variables exist
 if [ -z "${fore[*]:-}" ] \
    || [ -z "${style[*]:-}" ] \
+   || [ -z "${SEVENZIP_BIN:-}" ] \
    || [ -z "${INSTALL_DIRECTORY:-}" ] \
    || [ -z "${DOWNLOADS_FILENAME_LIST:-}" ] \
    || [ -z "${INSTALLATION_MODE:-}" ]; then
@@ -50,7 +51,7 @@ installer_step::unpack_iso::text() {
     done
   fi
 
-  7z x "${ISO_DOWNLOAD_PATH}" "${SEVENZ_ARGS[@]}"
+  "${SEVENZIP_BIN}" x "${ISO_DOWNLOAD_PATH}" "${SEVENZ_ARGS[@]}"
 
   if [ "${UNPACK_REQUEST_STAGING:-off}" == "on" ]; then
     if type installer_step::unpack_iso::post_staging >/dev/null; then

@@ -9,6 +9,7 @@ fi
 # Ensure required variables exist
 if [ -z "${fore[*]:-}" ] \
    || [ -z "${style[*]:-}" ] \
+   || [ -z "${SEVENZIP_BIN:-}" ] \
    || [ -z "${INSTALL_DIRECTORY:-}" ] \
    || [ -z "${DOWNLOADS_FILENAME_LIST:-}" ] \
    || [ -z "${INSTALLATION_MODE:-}" ]; then
@@ -29,7 +30,7 @@ installer_step::unpack_bp4::text() {
 
   SEVENZ_ARGS=("-y" "-o${INSTALL_DIRECTORY}")
 
-  7z x "${BP4_DOWNLOAD_PATH}" "${SEVENZ_ARGS[@]}"
+  "${SEVENZIP_BIN}" x "${BP4_DOWNLOAD_PATH}" "${SEVENZ_ARGS[@]}"
   echo
 }
 
