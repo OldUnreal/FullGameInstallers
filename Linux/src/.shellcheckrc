@@ -1,0 +1,5 @@
+external-sources=true
+
+disable=SC2034 # Shellcheck cannot determine this pre-import
+disable=SC2168 # Everything is imported within a function, therefore local is valid
+disable=SC2154 # Shellcheck cannot check variable definition between files
