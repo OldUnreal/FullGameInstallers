@@ -1,0 +1,30 @@
+# shellcheck shell=bash
+
+local ARCHITECTURE_SUFFIX UE_SYSTEM_FOLDER_SUFFIX
+
+case $(uname -m) in
+  x86_64)
+    ARCHITECTURE_SUFFIX='amd64'
+    UE_SYSTEM_FOLDER_SUFFIX='64'
+    ;;
+  amd64)
+    ARCHITECTURE_SUFFIX='amd64'
+    UE_SYSTEM_FOLDER_SUFFIX='64'
+    ;;
+  aarch64)
+    ARCHITECTURE_SUFFIX='arm64'
+    UE_SYSTEM_FOLDER_SUFFIX='ARM64'
+    ;;
+  i386)
+    ARCHITECTURE_SUFFIX='x86'
+    UE_SYSTEM_FOLDER_SUFFIX=''
+    ;;
+  i686)
+    ARCHITECTURE_SUFFIX='x86'
+    UE_SYSTEM_FOLDER_SUFFIX=''
+    ;;
+  *)
+    ARCHITECTURE_SUFFIX='NOT_SUPPORTED'
+    UE_SYSTEM_FOLDER_SUFFIX=''
+    ;;
+esac
