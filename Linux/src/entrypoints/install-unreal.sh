@@ -4,7 +4,7 @@
 #
 # shellcheck source-path=SCRIPTDIR
 # ARGBASH_SET_INDENT([  ])
-# ARG_OPTIONAL_SINGLE([destination],[d],[Install directory. Will be created if it doesn't exist.],[${XDG_DATA_DIR:-${HOME}/.local/share}/OldUnreal/UnrealGold])
+# ARG_OPTIONAL_SINGLE([destination],[d],[Install directory. Will be created if it doesn't exist.],[${XDG_DATA_HOME:-${HOME}/.local/share}/OldUnreal/UnrealGold])
 # ARG_OPTIONAL_SINGLE([ui-mode],[],[UI library to use during install.],[auto])
 # ARG_TYPE_GROUP_SET([uimode],[MODE],[ui-mode],[auto,kdialog,zenity,none])
 # ARG_OPTIONAL_SINGLE([application-entry],[],[Action to take when installing the XDG Application Entry.],[prompt])
@@ -52,7 +52,7 @@ begins_with_short_option() {
 }
 
 # THE DEFAULTS INITIALIZATION - OPTIONALS
-_arg_destination="${XDG_DATA_DIR:-${HOME}/.local/share}/OldUnreal/UnrealGold"
+_arg_destination="${XDG_DATA_HOME:-${HOME}/.local/share}/OldUnreal/UnrealGold"
 _arg_ui_mode="auto"
 _arg_application_entry="prompt"
 _arg_desktop_shortcut="prompt"
@@ -61,7 +61,7 @@ _arg_keep_installer_files="off"
 print_help() {
   printf '%s\n' "Install Unreal Gold"
   printf 'Usage: %s [-d|--destination <arg>] [--ui-mode <MODE>] [--application-entry <ACTION>] [--desktop-shortcut <ACTION>] [-k|--(no-)keep-installer-files] [-h|--help] [-v|--version]\n' "$0"
-  printf '\t%s\n' "-d, --destination: Install directory. Will be created if it doesn't exist. (default: '${XDG_DATA_DIR:-${HOME}/.local/share}/OldUnreal/UnrealGold')"
+  printf '\t%s\n' "-d, --destination: Install directory. Will be created if it doesn't exist. (default: '${XDG_DATA_HOME:-${HOME}/.local/share}/OldUnreal/UnrealGold')"
   printf '\t%s\n' "--ui-mode: UI library to use during install.. Can be one of: 'auto', 'kdialog', 'zenity' and 'none' (default: 'auto')"
   printf '\t%s\n' "--application-entry: Action to take when installing the XDG Application Entry.. Can be one of: 'install', 'prompt' and 'skip' (default: 'prompt')"
   printf '\t%s\n' "--desktop-shortcut: Action to take when installing a desktop shortcut.. Can be one of: 'install', 'prompt' and 'skip' (default: 'prompt')"
@@ -271,12 +271,12 @@ installer::entrypoint() {
     "${XDG_DATA_HOME:-${HOME}/.local/share}/applications/OldUnreal-${PRODUCT_SHORTNAME}.desktop" \
     "${_arg_application_entry}"
 
-  step::xdg_desktop_entry \
+  step::xdg_desktop_entry::xdg_dir \
     "Desktop Shortcut" \
     "Do you want to create a shortcut on your desktop?" \
-    "${XDG_DESKTOP_DIR:-${HOME}/Desktop}/${PRODUCT_SHORTNAME}.desktop" \
-    "${_arg_desktop_shortcut}" \
-    "no"
+    "DESKTOP" \
+    "${PRODUCT_SHORTNAME}.desktop" \
+    "${_arg_desktop_shortcut}"
 
   # @include steps/notify_install_finished.sh
   step::notify_install_finished
