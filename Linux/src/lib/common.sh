@@ -211,6 +211,26 @@ term::step::failed_with_error() {
   fi
 }
 
+xdgdirs::get_user_dir() {
+  local USER_DIR_NAME="${1}"
+
+  if command -pv xdg-user-dir &>/dev/null; then
+    local USER_DIR_RETURNED
+    USER_DIR_RETURNED=$(xdg-user-dir "${USER_DIR_NAME}")
+
+    if [[ -d "${USER_DIR_RETURNED}" ]]; then
+      echo "${USER_DIR_RETURNED}"
+    fi
+
+    return 0
+  fi
+
+  local USER_DIR_VAR_NAME="XDG_${USER_DIR_NAME}_DIR"
+  if [[ -n "${!USER_DIR_VAR_NAME:-}" ]] && [[ -d "${!USER_DIR_VAR_NAME}" ]]; then
+    echo "${!USER_DIR_VAR_NAME}"
+  fi
+}
+
 helper::progress::run_with_progress() {
   local LAST_UPDATE=""
 
@@ -284,7 +304,7 @@ helper::run_as_proc_group() {
   set +m
   local PROC_SUB_PID=$!
 
-  trap 'trap - EXIT; [ -n "${PROC_SUB_PID:-}" ] && { kill -- -"${PROC_SUB_PID}"; wait "${PROC_SUB_PID}"; return $?; }' EXIT
+  trap 'trap - EXIT; [[ -n "${PROC_SUB_PID:-}" ]] && { kill -- -"${PROC_SUB_PID}"; wait "${PROC_SUB_PID}"; return $?; }' EXIT
 
   wait "${PROC_SUB_PID}"
   local EXIT_CODE=$?

@@ -71,6 +71,29 @@ step::xdg_desktop_entry() {
   term::step::complete
 }
 
+step::xdg_desktop_entry::xdg_dir() {
+  local STEP_NAME="${1:-}"
+  local STEP_PROMPT="${2:-}"
+  local XDG_DIR_NAME="${3:-}"
+  local DESKTOP_ENTRY_PATH="${4:-}"
+  local APPLICATION_ENTRY_HANDLING_MODE="${5:-}"
+
+  if [[ -z "${STEP_NAME}" ]] || [[ -z "${STEP_PROMPT}" ]] || [[ -z "${XDG_DIR_NAME}" ]] || [[ -z "${DESKTOP_ENTRY_PATH}" ]] || [[ -z "${APPLICATION_ENTRY_HANDLING_MODE}" ]]; then
+    return 1
+  fi
+
+  local XDG_DIR_PATH
+  XDG_DIR_PATH=$(xdgdirs::get_user_dir "${XDG_DIR_NAME}")
+
+  if [[ -z "${XDG_DIR_PATH}" ]]; then
+    term::step::new "${STEP_NAME}"
+    term::step::skipped "SKIPPED: Not Available"
+    return 0
+  fi
+
+  step::xdg_desktop_entry "${STEP_NAME}" "${STEP_PROMPT}" "${XDG_DIR_PATH}/${DESKTOP_ENTRY_PATH}" "${APPLICATION_ENTRY_HANDLING_MODE}" "yes"
+}
+
 __step::xdg_desktop_entry::create() {
   local DESKTOP_ENTRY_PATH="${1:-}"
 
