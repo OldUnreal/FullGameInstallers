@@ -1,2 +1,3 @@
 # Local only testing scripts
 Linux/**/*.local.sh
+Linux/.tmp

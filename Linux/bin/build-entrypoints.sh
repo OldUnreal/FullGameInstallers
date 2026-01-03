@@ -111,11 +111,11 @@ _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" || { echo "Couldn't 
 # Enable Bash Strict Mode
 set -euo pipefail
 
-if [ "${_arg_lint}" == "on" ] && ! command -pv shellcheck &>/dev/null; then
+if [ "${_arg_lint}" == "on" ] && ! command -v shellcheck &>/dev/null; then
   die "shellcheck must be installed to format the files"
 fi
 
-if [ "${_arg_format}" == "on" ] && ! command -pv shfmt &>/dev/null; then
+if [ "${_arg_format}" == "on" ] && ! command -v shfmt &>/dev/null; then
   die "shfmt must be installed to format the files"
 fi
 
@@ -141,7 +141,6 @@ while IFS= read -r -d '' ENTRYPOINT_FILE_PATH; do
 
     # Move the expanded version back to the temp file for the next pass
     mv -f "${DESTINATION_SWAP}" "${DESTINATION_FILE}"
-    break
   done
 
   if [ "${_arg_format}" == "on" ]; then

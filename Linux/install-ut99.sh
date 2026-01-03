@@ -10,9 +10,10 @@
 # ARG_OPTIONAL_SINGLE([application-entry],[],[Action to take when installing the XDG Application Entry.],[prompt])
 # ARG_OPTIONAL_SINGLE([desktop-shortcut],[],[Action to take when installing a desktop shortcut.],[prompt])
 # ARG_TYPE_GROUP_SET([entryhandlingmode],[ACTION],[application-entry,desktop-shortcut],[install,prompt,skip])
+# ARG_OPTIONAL_BOOLEAN([unrealed],[e],[Install UnrealEd (Windows, umu-launcher recommended).],[])
 # ARG_OPTIONAL_BOOLEAN([keep-installer-files],[k],[Keep ISO and Patch files.],[])
 # ARG_HELP([Install Unreal Tournament: GOTY])
-# ARG_VERSION_AUTO([1.1],['OldUnreal <https://oldunreal.com>'])
+# ARG_VERSION_AUTO([1.2],['OldUnreal <https://oldunreal.com>'])
 # DEFINE_SCRIPT_DIR([_SCRIPT_DIR])
 # ARGBASH_GO()
 # needed because of Argbash --> m4_ignore([
@@ -46,7 +47,7 @@ entryhandlingmode() {
 }
 
 begins_with_short_option() {
-  local first_option all_short_options='dkhv'
+  local first_option all_short_options='dekhv'
   first_option="${1:0:1}"
   test "$all_short_options" = "${all_short_options/$first_option/}" && return 1 || return 0
 }
@@ -56,15 +57,17 @@ _arg_destination="${XDG_DATA_HOME:-${HOME}/.local/share}/OldUnreal/UnrealTournam
 _arg_ui_mode="auto"
 _arg_application_entry="prompt"
 _arg_desktop_shortcut="prompt"
+_arg_unrealed="off"
 _arg_keep_installer_files="off"
 
 print_help() {
   printf '%s\n' "Install Unreal Tournament: GOTY"
-  printf 'Usage: %s [-d|--destination <arg>] [--ui-mode <MODE>] [--application-entry <ACTION>] [--desktop-shortcut <ACTION>] [-k|--(no-)keep-installer-files] [-h|--help] [-v|--version]\n' "$0"
+  printf 'Usage: %s [-d|--destination <arg>] [--ui-mode <MODE>] [--application-entry <ACTION>] [--desktop-shortcut <ACTION>] [-e|--(no-)unrealed] [-k|--(no-)keep-installer-files] [-h|--help] [-v|--version]\n' "$0"
   printf '\t%s\n' "-d, --destination: Install directory. Will be created if it doesn't exist. (default: '${XDG_DATA_HOME:-${HOME}/.local/share}/OldUnreal/UnrealTournament')"
   printf '\t%s\n' "--ui-mode: UI library to use during install.. Can be one of: 'auto', 'kdialog', 'zenity' and 'none' (default: 'auto')"
   printf '\t%s\n' "--application-entry: Action to take when installing the XDG Application Entry.. Can be one of: 'install', 'prompt' and 'skip' (default: 'prompt')"
   printf '\t%s\n' "--desktop-shortcut: Action to take when installing a desktop shortcut.. Can be one of: 'install', 'prompt' and 'skip' (default: 'prompt')"
+  printf '\t%s\n' "-e, --unrealed, --no-unrealed: Install UnrealEd (Windows, umu-launcher recommended). (off by default)"
   printf '\t%s\n' "-k, --keep-installer-files, --no-keep-installer-files: Keep ISO and Patch files. (off by default)"
   printf '\t%s\n' "-h, --help: Prints help"
   printf '\t%s\n' "-v, --version: Prints version"
@@ -110,6 +113,17 @@ parse_commandline() {
     --desktop-shortcut=*)
       _arg_desktop_shortcut="$(entryhandlingmode "${_key##--desktop-shortcut=}" "desktop-shortcut")" || exit 1
       ;;
+    -e | --no-unrealed | --unrealed)
+      _arg_unrealed="on"
+      test "${1:0:5}" = "--no-" && _arg_unrealed="off"
+      ;;
+    -e*)
+      _arg_unrealed="on"
+      _next="${_key##-e}"
+      if test -n "$_next" -a "$_next" != "$_key"; then
+        { begins_with_short_option "$_next" && shift && set -- "-e" "-${_next}" "$@"; } || die "The short option '$_key' can't be decomposed to ${_key:0:2} and -${_key:2}, because ${_key:0:2} doesn't accept value and '-${_key:2:1}' doesn't correspond to a short option."
+      fi
+      ;;
     -k | --no-keep-installer-files | --keep-installer-files)
       _arg_keep_installer_files="on"
       test "${1:0:5}" = "--no-" && _arg_keep_installer_files="off"
@@ -130,11 +144,11 @@ parse_commandline() {
       exit 0
       ;;
     -v | --version)
-      printf '%s %s\n\n%s\n%s\n' "install-ut99.sh" "1.1" 'Install Unreal Tournament: GOTY' 'OldUnreal <https://oldunreal.com>'
+      printf '%s %s\n\n%s\n%s\n' "install-ut99.sh" "1.2" 'Install Unreal Tournament: GOTY' 'OldUnreal <https://oldunreal.com>'
       exit 0
       ;;
     -v*)
-      printf '%s %s\n\n%s\n%s\n' "install-ut99.sh" "1.1" 'Install Unreal Tournament: GOTY' 'OldUnreal <https://oldunreal.com>'
+      printf '%s %s\n\n%s\n%s\n' "install-ut99.sh" "1.2" 'Install Unreal Tournament: GOTY' 'OldUnreal <https://oldunreal.com>'
       exit 0
       ;;
     *)
@@ -165,6 +179,7 @@ installer::entrypoint() {
   local PRODUCT_NAME="Unreal Tournament: GOTY"
   local PRODUCT_SHORTNAME="UnrealTournament"
   local PRODUCT_KEYWORDS=("UT" "UT99" "Unreal Tournament 1999")
+  local PRODUCT_URLSCHEME="unreal"
   local MAIN_BINARY_NAME="ut-bin"
 
   # Import Library files
@@ -197,13 +212,13 @@ installer::entrypoint() {
       { [[ -n "${SSH_CLIENT:-}" ]] || [[ -n "${SSH_TTY:-}" ]]; }; then
       # If we do not have a display, or we are in a SSH session, fallback to text mode
       _arg_ui_mode="none"
-    elif { [[ "${XDG_CURRENT_DESKTOP:-}" == "KDE" ]] && command -pv kdialog &>/dev/null && command -pv busctl &>/dev/null; }; then
+    elif { [[ "${XDG_CURRENT_DESKTOP:-}" == "KDE" ]] && command -v kdialog &>/dev/null && command -v busctl &>/dev/null; }; then
       # If we are on KDE, and kdialog + busctl is available, use kdialog
       _arg_ui_mode="kdialog"
-    elif command -pv zenity &>/dev/null; then
+    elif command -v zenity &>/dev/null; then
       # Use Zenity if available
       _arg_ui_mode="zenity"
-    elif command -pv kdialog &>/dev/null && command -pv busctl &>/dev/null; then
+    elif command -v kdialog &>/dev/null && command -v busctl &>/dev/null; then
       # If kdialog is available, but zenity is not (outside of KDE)
       _arg_ui_mode="kdialog"
     else
@@ -384,7 +399,7 @@ installer::entrypoint() {
   xdgdirs::get_user_dir() {
     local USER_DIR_NAME="${1}"
 
-    if command -pv xdg-user-dir &>/dev/null; then
+    if command -v xdg-user-dir &>/dev/null; then
       local USER_DIR_RETURNED
       USER_DIR_RETURNED=$(xdg-user-dir "${USER_DIR_NAME}")
 
@@ -515,7 +530,7 @@ installer::entrypoint() {
   }
   # shellcheck shell=bash
 
-  local ARCHITECTURE_SUFFIX ARCHITECTURE_BINARY_SUFFIX UE_SYSTEM_FOLDER_SUFFIX
+  local ARCHITECTURE_SUFFIX ARCHITECTURE_BINARY_SUFFIX UE_SYSTEM_FOLDER_SUFFIX UEED_SYSTEM_FOLDER_SUFFIX
 
   local DETECTED_ARCHITECTURE
   DETECTED_ARCHITECTURE=$(uname -m)
@@ -527,11 +542,19 @@ installer::entrypoint() {
       ARCHITECTURE_SUFFIX='amd64'
       ARCHITECTURE_BINARY_SUFFIX=''
       UE_SYSTEM_FOLDER_SUFFIX=''
+      UEED_SYSTEM_FOLDER_SUFFIX=''
+      ;;
+    UnrealTournament)
+      ARCHITECTURE_SUFFIX='amd64'
+      ARCHITECTURE_BINARY_SUFFIX='-amd64'
+      UE_SYSTEM_FOLDER_SUFFIX='64'
+      UEED_SYSTEM_FOLDER_SUFFIX=''
       ;;
     *)
       ARCHITECTURE_SUFFIX='amd64'
       ARCHITECTURE_BINARY_SUFFIX='-amd64'
       UE_SYSTEM_FOLDER_SUFFIX='64'
+      UEED_SYSTEM_FOLDER_SUFFIX='64'
       ;;
     esac
     ;;
@@ -541,11 +564,19 @@ installer::entrypoint() {
       ARCHITECTURE_SUFFIX='arm64'
       ARCHITECTURE_BINARY_SUFFIX=''
       UE_SYSTEM_FOLDER_SUFFIX='ARM64'
+      UEED_SYSTEM_FOLDER_SUFFIX=''
+      ;;
+    UnrealTournament)
+      ARCHITECTURE_SUFFIX='arm64'
+      ARCHITECTURE_BINARY_SUFFIX='-arm64'
+      UE_SYSTEM_FOLDER_SUFFIX='ARM64'
+      UEED_SYSTEM_FOLDER_SUFFIX=''
       ;;
     *)
       ARCHITECTURE_SUFFIX='arm64'
       ARCHITECTURE_BINARY_SUFFIX='-arm64'
       UE_SYSTEM_FOLDER_SUFFIX='ARM64'
+      UEED_SYSTEM_FOLDER_SUFFIX='64'
       ;;
     esac
     ;;
@@ -555,11 +586,13 @@ installer::entrypoint() {
       ARCHITECTURE_SUFFIX='NOT_SUPPORTED'
       ARCHITECTURE_BINARY_SUFFIX=''
       UE_SYSTEM_FOLDER_SUFFIX=''
+      UEED_SYSTEM_FOLDER_SUFFIX=''
       ;;
     *)
       ARCHITECTURE_SUFFIX='x86'
       ARCHITECTURE_BINARY_SUFFIX='-x86'
       UE_SYSTEM_FOLDER_SUFFIX=''
+      UEED_SYSTEM_FOLDER_SUFFIX=''
       ;;
     esac
     ;;
@@ -567,6 +600,7 @@ installer::entrypoint() {
     ARCHITECTURE_SUFFIX='NOT_SUPPORTED'
     ARCHITECTURE_BINARY_SUFFIX=''
     UE_SYSTEM_FOLDER_SUFFIX=''
+    UEED_SYSTEM_FOLDER_SUFFIX=''
     ;;
   esac
   # shellcheck shell=bash
@@ -579,16 +613,16 @@ installer::entrypoint() {
   local DOWNLOADER_DL_BIN=""
   local DOWNLOADER_DL_TYPE=""
 
-  local DOWNLOADER_USER_AGENT="OldUnreal-${PRODUCT_SHORTNAME}-Linux-Installer/1.1"
+  local DOWNLOADER_USER_AGENT="OldUnreal-${PRODUCT_SHORTNAME}-Linux-Installer/1.2"
 
   # For archive.org links, aria2c will be instructed to open multiple connections at the same time
   local ARIA2C_ARCHIVEORG_CONNECTIONS="${OLDUNREAL_ARCHIVEORG_ARIA2C_CONNECTIONS:-4}"
 
   # Check which command should be used for API calls
-  if command -pv "curl" &>/dev/null; then
+  if command -v "curl" &>/dev/null; then
     DOWNLOADER_API_BIN="curl"
     DOWNLOADER_API_TYPE="curl"
-  elif command -pv "wget" &>/dev/null; then
+  elif command -v "wget" &>/dev/null; then
     DOWNLOADER_API_BIN="wget"
     DOWNLOADER_API_TYPE="wget"
 
@@ -596,13 +630,13 @@ installer::entrypoint() {
     if [[ "$(wget --version)" =~ " Wget2 " ]]; then
       DOWNLOADER_API_TYPE="wget2"
     fi
-  elif command -pv "wget2" &>/dev/null; then
+  elif command -v "wget2" &>/dev/null; then
     DOWNLOADER_API_BIN="wget2"
     DOWNLOADER_API_TYPE="wget2"
   fi
 
   # Check which command should be used for downloads
-  if command -pv "aria2c" &>/dev/null; then
+  if command -v "aria2c" &>/dev/null; then
     DOWNLOADER_DL_BIN="aria2c"
     DOWNLOADER_DL_TYPE="aria2c"
   else
@@ -720,9 +754,9 @@ installer::entrypoint() {
       return 1
     fi
 
-    if command -pv sha256sum &>/dev/null; then
+    if command -v sha256sum &>/dev/null; then
       sha256sum "${FILEPATH}" | cut -f1 -d' '
-    elif command -pv shasum &>/dev/null; then
+    elif command -v shasum &>/dev/null; then
       shasum -a 256 "${FILEPATH}" | cut -f1 -d' '
     fi
   }
@@ -995,9 +1029,9 @@ installer::entrypoint() {
   # shellcheck shell=bash
 
   local UNARCHIVER_BIN=""
-  if command -pv "7z" &>/dev/null; then
+  if command -v "7z" &>/dev/null; then
     UNARCHIVER_BIN="7z"
-  elif command -pv "7zz" &>/dev/null; then
+  elif command -v "7zz" &>/dev/null; then
     UNARCHIVER_BIN="7zz"
   fi
 
@@ -1017,6 +1051,11 @@ installer::entrypoint() {
     fi
 
     term::step::new "Extract ${ITEM_NAME}"
+
+    local IS_TARBALL="n"
+    if __unarchiver::is_tarball "${ARCHIVE_PATH}"; then
+      IS_TARBALL="y"
+    fi
 
     local UNARCHIVE_PROGRESS
 
@@ -1038,23 +1077,39 @@ installer::entrypoint() {
           continue
         fi
 
-        term::step::progress "${UNARCHIVE_PROGRESS}%" >&6
+        local PROGRESS_TEXT="${UNARCHIVE_PROGRESS}"
+        if [[ "${IS_TARBALL}" == "n" ]]; then
+          PROGRESS_TEXT="${PROGRESS_TEXT}%"
+        fi
 
-        local DIALOG_TEXT="Extracting ${ITEM_NAME} (${UNARCHIVE_PROGRESS}%)"
+        term::step::progress "${PROGRESS_TEXT}" >&6
+
+        local DIALOG_TEXT="Extracting ${ITEM_NAME} (${PROGRESS_TEXT})"
 
         if [[ "${_arg_ui_mode:-none}" == "kdialog" ]]; then
           local ESCAPED_DIALOG_TEXT
           ESCAPED_DIALOG_TEXT="$(echo -e "${DIALOG_TEXT}")"
-          busctl --user set-property "${KDIALOG_DBUS_ADDRESS[@]}" "org.kde.kdialog.ProgressDialog" "maximum" i 100 2>/dev/null || true
-          busctl --user set-property "${KDIALOG_DBUS_ADDRESS[@]}" "org.kde.kdialog.ProgressDialog" "value" i "${UNARCHIVE_PROGRESS}" 2>/dev/null || true
+
+          if [[ "${IS_TARBALL}" == "n" ]]; then
+            busctl --user set-property "${KDIALOG_DBUS_ADDRESS[@]}" "org.kde.kdialog.ProgressDialog" "maximum" i 100 2>/dev/null || true
+            busctl --user set-property "${KDIALOG_DBUS_ADDRESS[@]}" "org.kde.kdialog.ProgressDialog" "value" i "${UNARCHIVE_PROGRESS}" 2>/dev/null || true
+          fi
+
           busctl --user call "${KDIALOG_DBUS_ADDRESS[@]}" "org.kde.kdialog.ProgressDialog" "setLabelText" s "${ESCAPED_DIALOG_TEXT}" 2>/dev/null || true
         elif [[ "${_arg_ui_mode:-none}" == "zenity" ]]; then
-          echo "${UNARCHIVE_PROGRESS}"
+          if [[ "${IS_TARBALL}" == "n" ]]; then
+            echo "${UNARCHIVE_PROGRESS}"
+          fi
+
           echo "# ${DIALOG_TEXT}"
         fi
       done | {
       if [[ "${_arg_ui_mode:-none}" == "zenity" ]]; then
-        zenity --progress --percentage=0 --text="Extracting ${ITEM_NAME}..." --no-cancel --time-remaining --auto-close 2>/dev/null
+        if [[ "${IS_TARBALL}" == "n" ]]; then
+          zenity --progress --percentage=0 --text="Extracting ${ITEM_NAME}..." --no-cancel --time-remaining --auto-close 2>/dev/null
+        else
+          zenity --progress --pulsate --text="Extracting ${ITEM_NAME}..." --no-cancel --auto-close 2>/dev/null
+        fi
       else
         cat - >/dev/null
       fi
@@ -1078,6 +1133,59 @@ installer::entrypoint() {
     term::step::complete
   }
 
+  local SEVENZ_VERSION_MAJOR="0"
+  local SEVENZ_VERSION_MINOR="0"
+  local SEVENZ_REQUIRE_SNLD="no"
+
+  __unarchiver::read_7z_version() {
+    if [[ "${SEVENZ_VERSION_MAJOR}" -gt 0 ]]; then
+      return 0
+    fi
+
+    local SEZENV_VERSION_REGEX='^7-Zip( \[[0-9a-zA-Z_-]\]+)? ([0-9]+)(\.([0-9]+)| |:)'
+
+    local SEVENZ_OUTPUT_LINE
+    while IFS= read -r SEVENZ_OUTPUT_LINE; do
+      if [[ "${SEVENZ_VERSION_MAJOR}" -gt 0 ]]; then
+        continue
+      fi
+
+      if [[ "${SEVENZ_OUTPUT_LINE}" =~ ${SEZENV_VERSION_REGEX} ]]; then
+        SEVENZ_VERSION_MAJOR="${BASH_REMATCH[2]}"
+        SEVENZ_VERSION_MINOR="${BASH_REMATCH[4]:-0}"
+
+        if [[ "${SEVENZ_VERSION_MAJOR}" -gt 25 ]]; then
+          SEVENZ_REQUIRE_SNLD="yes"
+        elif [[ "${SEVENZ_VERSION_MAJOR}" -eq 25 ]] && [[ "${SEVENZ_VERSION_MINOR}" -ge 1 ]]; then
+          SEVENZ_REQUIRE_SNLD="yes"
+        fi
+      fi
+    done < <("${UNARCHIVER_BIN}" 2>&1)
+  }
+
+  __unarchiver::is_tarball() {
+    local ARCHIVE_PATH="${1:-}"
+
+    local ARCHIVE_FILENAME="${ARCHIVE_PATH##*/}"
+
+    case "${ARCHIVE_FILENAME}" in
+    *.tar.gz | *.tgz)
+      return 0
+      ;;
+    *.tar.bz2 | *.tbz)
+      return 0
+      ;;
+    *.tar.xz | *.txz)
+      return 0
+      ;;
+    *.tar.zst | *.tar.zstd)
+      return 0
+      ;;
+    esac
+
+    return 1
+  }
+
   __unarchiver::unarchive_file_with_progress() {
     local ARCHIVE_PATH="${1:-}"
     local TARGET_PATH="${2:-}"
@@ -1088,18 +1196,40 @@ installer::entrypoint() {
       return 1
     fi
 
-    local SEVENZ_REGEX='^\s*([0-9]+)%'
+    local IS_TARBALL="n"
+    if __unarchiver::is_tarball "${ARCHIVE_PATH}"; then
+      IS_TARBALL="y"
+    fi
 
-    __unarchiver::unarchive_file::call_7z \
-      "${ARCHIVE_PATH}" "${TARGET_PATH}" \
-      "${IGNORE_PATTERNS_VAR_NAME}" "${IGNORE_PATTERNS_RECURSIVE_VAR_NAME}" |
-      stdbuf -oL -- tr $'\b\r' $'\n\n' |
-      while IFS= read -r UNARCHIVE_PROGRESS; do
-        if [[ "${UNARCHIVE_PROGRESS}" =~ ${SEVENZ_REGEX} ]]; then
-          echo "${BASH_REMATCH[1]}"
-        fi
-      done
-    return "${PIPESTATUS[0]}"
+    local UNARCHIVE_PROGRESS
+    if [[ "${IS_TARBALL}" == "y" ]]; then
+      local TAR_REGEX='^tar:\s+r:\s+[0-9]+\s+\((.+)\)$'
+
+      __unarchiver::unarchive_file::call_tar \
+        "${ARCHIVE_PATH}" "${TARGET_PATH}" \
+        "${IGNORE_PATTERNS_VAR_NAME}" "${IGNORE_PATTERNS_RECURSIVE_VAR_NAME}" |
+        while IFS= read -r UNARCHIVE_PROGRESS; do
+          if [[ "${UNARCHIVE_PROGRESS}" =~ ${TAR_REGEX} ]]; then
+            echo "${BASH_REMATCH[1]}"
+          else
+            echo "${UNARCHIVE_PROGRESS}" 1>&2
+          fi
+        done
+      return "${PIPESTATUS[0]}"
+    else
+      local SEVENZ_REGEX='^\s*([0-9]+)%'
+
+      __unarchiver::unarchive_file::call_7z \
+        "${ARCHIVE_PATH}" "${TARGET_PATH}" \
+        "${IGNORE_PATTERNS_VAR_NAME}" "${IGNORE_PATTERNS_RECURSIVE_VAR_NAME}" |
+        stdbuf -oL -- tr $'\b\r' $'\n\n' |
+        while IFS= read -r UNARCHIVE_PROGRESS; do
+          if [[ "${UNARCHIVE_PROGRESS}" =~ ${SEVENZ_REGEX} ]]; then
+            echo "${BASH_REMATCH[1]}"
+          fi
+        done
+      return "${PIPESTATUS[0]}"
+    fi
   }
 
   __unarchiver::unarchive_file::call_7z() {
@@ -1109,8 +1239,6 @@ installer::entrypoint() {
     if [[ -z "${ARCHIVE_PATH}" ]] || [[ -z "${TARGET_PATH}" ]]; then
       return 1
     fi
-
-    local ARCHIVE_FILENAME="${ARCHIVE_PATH##*/}"
 
     local IGNORE_PATTERNS=()
     local IGNORE_PATTERNS_VAR_NAME="${3:-}"
@@ -1126,31 +1254,15 @@ installer::entrypoint() {
       IGNORE_PATTERNS_RECURSIVE=("${!IGNORE_PATTERN_RECURSIVE_VAR_REF}")
     fi
 
-    local IS_TARBALL="n"
-
-    case "${ARCHIVE_FILENAME}" in
-    *.tar.gz | *.tgz)
-      IS_TARBALL="y"
-      ;;
-    *.tar.bz2 | *.tbz)
-      IS_TARBALL="y"
-      ;;
-    *.tar.xz | *.txz)
-      IS_TARBALL="y"
-      ;;
-    *.tar.zst | *.tar.zstd)
-      IS_TARBALL="y"
-      ;;
-    esac
-
+    __unarchiver::read_7z_version
     local SEZENZ_ARGS=()
-    local SEZENZ_OUTER_ARGS=()
 
-    if [[ "${IS_TARBALL}" == "y" ]]; then
-      SEZENZ_OUTER_ARGS=("x" "${ARCHIVE_PATH}" "-y" "-bsp0" "-bso0" "-bse2" "-so")
-      SEZENZ_ARGS=("x" "-si" "-ttar" "-y" "-bsp1" "-bso0" "-bse2" "-aoa" "-snld" "-o${TARGET_PATH}")
+    SEZENZ_ARGS=("x" "${ARCHIVE_PATH}" "-y" "-bsp1" "-bso0" "-bse2" "-aoa" "-o${TARGET_PATH}")
+
+    if [[ "${SEVENZ_REQUIRE_SNLD}" == "yes" ]]; then
+      SEZENZ_ARGS+=("-snld")
     else
-      SEZENZ_ARGS=("x" "${ARCHIVE_PATH}" "-y" "-bsp1" "-bso0" "-bse0" "-aoa" "-snld" "-o${TARGET_PATH}")
+      SEZENZ_ARGS+=("-snl")
     fi
 
     local IGNORE
@@ -1162,15 +1274,61 @@ installer::entrypoint() {
       SEZENZ_ARGS+=("-xr!${IGNORE}")
     done
 
-    if [[ "${IS_TARBALL}" == "y" ]]; then
-      "${UNARCHIVER_BIN}" "${SEZENZ_OUTER_ARGS[@]}" | "${UNARCHIVER_BIN}" "${SEZENZ_ARGS[@]}"
-    else
-      "${UNARCHIVER_BIN}" "${SEZENZ_ARGS[@]}"
+    "${UNARCHIVER_BIN}" "${SEZENZ_ARGS[@]}"
+  }
+
+  __unarchiver::unarchive_file::call_tar() {
+    local ARCHIVE_PATH="${1:-}"
+    local TARGET_PATH="${2:-}"
+
+    if [[ -z "${ARCHIVE_PATH}" ]] || [[ -z "${TARGET_PATH}" ]]; then
+      return 1
     fi
+
+    local IGNORE_PATTERNS=()
+    local IGNORE_PATTERNS_VAR_NAME="${3:-}"
+    if [[ -n "${IGNORE_PATTERNS_VAR_NAME}" ]]; then
+      local IGNORE_PATTERN_VAR_REF="${IGNORE_PATTERNS_VAR_NAME}[@]"
+      IGNORE_PATTERNS=("${!IGNORE_PATTERN_VAR_REF}")
+    fi
+
+    local IGNORE_PATTERNS_RECURSIVE=()
+    local IGNORE_PATTERNS_RECURSIVE_VAR_NAME="${4:-}"
+    if [[ -n "${IGNORE_PATTERNS_RECURSIVE_VAR_NAME}" ]]; then
+      local IGNORE_PATTERN_RECURSIVE_VAR_REF="${IGNORE_PATTERNS_RECURSIVE_VAR_NAME}[@]"
+      IGNORE_PATTERNS_RECURSIVE=("${!IGNORE_PATTERN_RECURSIVE_VAR_REF}")
+    fi
+
+    local TAR_ARGS=()
+
+    TAR_ARGS=("xf" "${ARCHIVE_PATH}" "--checkpoint=10" '--checkpoint-action=echo=%{r}T' "--overwrite" "-C" "${TARGET_PATH}")
+
+    local IGNORE
+    for IGNORE in "${IGNORE_PATTERNS[@]}"; do
+      TAR_ARGS+=("--exclude=${IGNORE}")
+    done
+
+    for IGNORE in "${IGNORE_PATTERNS_RECURSIVE[@]}"; do
+      TAR_ARGS+=("--exclude=${IGNORE}")
+    done
+
+    tar "${TAR_ARGS[@]}" 2>&1
   }
 
   # Patch Metadata Download Step
   local PATCH_METADATA_URL="https://api.github.com/repos/OldUnreal/UnrealTournamentPatches/releases/latest"
+
+  # UT:GOTY patches are separated per architecture
+  step::read_patch_meta_from_github::metadata_filter() {
+    local PATCH_OS_NAME="${1:-}"
+    local PATCH_TARGET_ARCHITECTURE="${2:-}"
+
+    if [[ "${PATCH_OS_NAME}" == "windows" ]]; then
+      echo "-windows-x86.zip"
+    else
+      echo "-${PATCH_OS_NAME}-${PATCH_TARGET_ARCHITECTURE}"
+    fi
+  }
 
   # Download Steps
   # shellcheck disable=SC2034 # Used dynamically below
@@ -1191,14 +1349,14 @@ installer::entrypoint() {
   )
 
   # Build Download sources
-  local DOWNLOADS_SOURCE_LIST=(
-    "$(downloader::build_download_source_definition "TITLE_PRIMARY_DOWNLOAD_SOURCES" "TITLE_BACKUP_DOWNLOAD_SOURCES")"
-    "$(downloader::build_download_source_definition "BP4_DOWNLOAD_SOURCES")"
+  declare -A DOWNLOADS_SOURCE_LIST=(
+    [game]="$(downloader::build_download_source_definition "TITLE_PRIMARY_DOWNLOAD_SOURCES" "TITLE_BACKUP_DOWNLOAD_SOURCES")"
+    [bp4]="$(downloader::build_download_source_definition "BP4_DOWNLOAD_SOURCES")"
   )
 
-  local DOWNLOADS_FILENAME_LIST=(
-    "UT_GOTY_CD1.iso"
-    "utbonuspack4-zip.7z"
+  declare -A DOWNLOADS_FILENAME_LIST=(
+    [game]="UT_GOTY_CD1.iso"
+    [bp4]="utbonuspack4-zip.7z"
   )
 
   # Game Data Unpacking
@@ -1272,7 +1430,7 @@ installer::entrypoint() {
     # Check UI Mode Dependencies
     if [[ "${_arg_ui_mode:-none}" == "kdialog" ]]; then
       term::step::progress "kdialog"
-      if ! command -pv "kdialog" &>/dev/null; then
+      if ! command -v "kdialog" &>/dev/null; then
         MISSING_DEPS+=("kdialog")
         MISSING_DEPS_RHEL+=("kdialog")
         MISSING_DEPS_DEB+=("kdialog")
@@ -1283,7 +1441,7 @@ installer::entrypoint() {
       fi
 
       term::step::progress "busctl"
-      if ! command -pv "busctl" &>/dev/null; then
+      if ! command -v "busctl" &>/dev/null; then
         MISSING_DEPS+=("systemd")
         MISSING_DEPS_RHEL+=("systemd")
         MISSING_DEPS_DEB+=("systemd")
@@ -1294,7 +1452,7 @@ installer::entrypoint() {
       fi
     elif [[ "${_arg_ui_mode:-none}" == "zenity" ]]; then
       term::step::progress "zenity"
-      if ! command -pv "zenity" &>/dev/null; then
+      if ! command -v "zenity" &>/dev/null; then
         MISSING_DEPS+=("zenity")
         MISSING_DEPS_RHEL+=("zenity")
         MISSING_DEPS_DEB+=("zenity")
@@ -1308,9 +1466,9 @@ installer::entrypoint() {
 
     # Check Downloaders
     term::step::progress "curl"
-    if ! command -pv "curl" &>/dev/null &&
-      ! command -pv "wget" &>/dev/null &&
-      ! command -pv "wget2" &>/dev/null; then
+    if ! command -v "curl" &>/dev/null &&
+      ! command -v "wget" &>/dev/null &&
+      ! command -v "wget2" &>/dev/null; then
       MISSING_DEPS+=("curl (or wget)")
       MISSING_DEPS_RHEL+=("curl")
       MISSING_DEPS_DEB+=("curl")
@@ -1320,10 +1478,19 @@ installer::entrypoint() {
     fi
 
     # Check Archivers
+    term::step::progress "tar"
+    if ! command -v "tar" &>/dev/null; then
+      MISSING_DEPS+=("tar")
+      MISSING_DEPS_RHEL+=("tar")
+      MISSING_DEPS_DEB+=("tar")
+      MISSING_DEPS_ARCH+=("tar")
+      MISSING_DEPS_OPENSUSE+=("tar")
+    fi
+
     term::step::progress "7zip"
-    if ! command -pv "7z" &>/dev/null &&
-      ! command -pv "7zz" &>/dev/null; then
-      MISSING_DEPS+=("7zip, p7zip-full [Debian], or 7zip-standalone-all [Fedora/RHEL]")
+    if ! command -v "7z" &>/dev/null &&
+      ! command -v "7zz" &>/dev/null; then
+      MISSING_DEPS+=("7zip, 7zip [Debian > bookworm], p7zip-full [Debian <= bookworm], or 7zip-standalone-all [Fedora/RHEL]")
       MISSING_DEPS_RHEL+=("7zip-standalone-all")
       MISSING_DEPS_DEB+=("p7zip-full")
       MISSING_DEPS_ARCH+=("7zip")
@@ -1333,26 +1500,13 @@ installer::entrypoint() {
 
     # Check jq
     term::step::progress "jq"
-    if ! command -pv "jq" &>/dev/null; then
+    if ! command -v "jq" &>/dev/null; then
       MISSING_DEPS+=("jq")
       MISSING_DEPS_RHEL+=("jq")
       MISSING_DEPS_DEB+=("jq")
       MISSING_DEPS_ARCH+=("jq")
       MISSING_DEPS_OPENSUSE+=("jq")
       MISSING_DEPS_BREW+=("jq")
-    fi
-
-    if [[ "${PRODUCT_SHORTNAME}" == "UT2004" ]]; then
-      # Check unshield
-      term::step::progress "unshield"
-      if ! command -pv "unshield" &>/dev/null; then
-        MISSING_DEPS+=("unshield")
-        MISSING_DEPS_RHEL+=("unshield")
-        MISSING_DEPS_DEB+=("unshield")
-        MISSING_DEPS_ARCH+=("unshield")
-        MISSING_DEPS_OPENSUSE+=("unshield")
-        MISSING_DEPS_BREW+=("unshield")
-      fi
     fi
 
     if [[ "${UI_MODE_DEPS_MET}" == "no" ]]; then
@@ -1363,16 +1517,16 @@ installer::entrypoint() {
       local DISTRO_DERIVATIVE=""
       local DISTRO_PKG_INSTALL_CMD=""
 
-      if command -pv "pacman" &>/dev/null; then
+      if command -v "pacman" &>/dev/null; then
         DISTRO_DERIVATIVE="Arch"
         DISTRO_PKG_INSTALL_CMD="sudo pacman -S ${MISSING_DEPS_ARCH[*]}"
-      elif command -pv "dnf" &>/dev/null; then
+      elif command -v "dnf" &>/dev/null; then
         DISTRO_DERIVATIVE="Fedora/RHEL"
         DISTRO_PKG_INSTALL_CMD="sudo dnf install ${MISSING_DEPS_RHEL[*]}"
-      elif command -pv "apt" &>/dev/null; then
+      elif command -v "apt" &>/dev/null; then
         DISTRO_DERIVATIVE="Debian"
         DISTRO_PKG_INSTALL_CMD="sudo apt install ${MISSING_DEPS_DEB[*]}"
-      elif command -pv "zypper" &>/dev/null; then
+      elif command -v "zypper" &>/dev/null; then
         DISTRO_DERIVATIVE="OpenSUSE"
         DISTRO_PKG_INSTALL_CMD="sudo zypper install ${MISSING_DEPS_OPENSUSE[*]}"
       fi
@@ -1390,7 +1544,7 @@ installer::entrypoint() {
         ERROR_TEXT="${ERROR_TEXT}\n  ${DISTRO_PKG_INSTALL_CMD}"
       fi
 
-      if command -pv "brew" &>/dev/null && [[ "${#MISSING_DEPS_BREW[@]}" -gt 0 ]]; then
+      if command -v "brew" &>/dev/null && [[ "${#MISSING_DEPS_BREW[@]}" -gt 0 ]]; then
         local BREW_INSTALL_CMD="brew install"
 
         for PKG in "${MISSING_DEPS_BREW[@]}"; do
@@ -1534,32 +1688,53 @@ You may read the Terms of Service at this URL:
 
   # shellcheck shell=bash
 
-  local PATCH_FILENAME
+  local PATCH_METADATA_JSON
 
   step::read_patch_meta_from_github() {
-    term::step::new "Fetch Patch Info from GitHub"
+    local PATCH_FOR_OS="${1:-linux}"
+    local PATCH_FOR_REASON="${2:-}"
+
+    local STEP_NAME="Fetch Patch Info from GitHub"
+
+    if [[ -n "${PATCH_FOR_REASON}" ]]; then
+      STEP_NAME="${STEP_NAME} (${PATCH_FOR_REASON})"
+    fi
+
+    term::step::new "${STEP_NAME}"
 
     if [[ -z "${PATCH_METADATA_URL:-}" ]]; then
       term::step::failed_with_error "Implementation error, PATCH_METADATA_URL not set."
       return 1
     fi
 
-    term::step::progress "Downloading Metadata"
-    local PATCH_METADATA_JSON
-    { PATCH_METADATA_JSON=$(downloader::fetch_json "${PATCH_METADATA_URL}"); } ||
-      {
-        term::step::failed_with_error "Failed to read patch metadata from GitHub. Installation aborted."
-        return 1
-      }
+    if [[ -z "${PATCH_METADATA_JSON:-}" ]]; then
+      term::step::progress "Downloading Metadata"
+      { PATCH_METADATA_JSON=$(downloader::fetch_json "${PATCH_METADATA_URL}"); } ||
+        {
+          term::step::failed_with_error "Failed to read patch metadata from GitHub. Installation aborted."
+          return 1
+        }
+    fi
 
     if ! type "step::read_patch_meta_from_github::metadata_filter" &>/dev/null; then
       step::read_patch_meta_from_github::metadata_filter() {
-        echo "-linux-${ARCHITECTURE_SUFFIX}"
+        local PATCH_OS_NAME="${1:-}"
+        # shellcheck disable=SC2034 # present by convention
+        local PATCH_TARGET_ARCHITECTURE="${2:-}"
+
+        if [[ "${PATCH_OS_NAME}" == "windows" ]]; then
+          echo "-${PATCH_OS_NAME}.zip"
+          return 0
+        fi
+
+        echo "-${PATCH_OS_NAME}"
       }
     fi
 
+    local METADATA_FILTER
+    METADATA_FILTER=$(step::read_patch_meta_from_github::metadata_filter "${PATCH_FOR_OS}" "${ARCHITECTURE_SUFFIX}")
     local JQ_FILTER
-    { JQ_FILTER='.assets[] | select(.browser_download_url | ascii_downcase | contains("'$(step::read_patch_meta_from_github::metadata_filter)'"))'; } ||
+    { JQ_FILTER='.assets[] | select(.browser_download_url | ascii_downcase | contains("'"${METADATA_FILTER}"'"))'; } ||
       {
         term::step::failed_with_error "Implementation error, step::read_patch_meta_from_github::metadata_filter runtime error."
         return 1
@@ -1587,19 +1762,24 @@ You may read the Terms of Service at this URL:
         return 1
       }
 
-    DOWNLOADS_SOURCE_LIST+=("${PATCH_DOWNLOAD_URL}|${PATCH_DOWNLOAD_SIZE}|")
-    DOWNLOADS_FILENAME_LIST+=("${PATCH_FILENAME}")
+    DOWNLOADS_SOURCE_LIST[patch_${PATCH_FOR_OS}]="${PATCH_DOWNLOAD_URL}|${PATCH_DOWNLOAD_SIZE}|"
+    DOWNLOADS_FILENAME_LIST[patch_${PATCH_FOR_OS}]="${PATCH_FILENAME}"
 
     term::step::complete
   }
   step::read_patch_meta_from_github
+  if [[ "${_arg_unrealed}" == "on" ]]; then
+    step::read_patch_meta_from_github "windows" "UnrealEd"
+  fi
 
   # shellcheck shell=bash
 
   step::download_files() {
-    for i in "${!DOWNLOADS_SOURCE_LIST[@]}"; do
-      local DOWNLOAD_URL_SETS="${DOWNLOADS_SOURCE_LIST[i]}"
-      local DOWNLOAD_FILENAME="${DOWNLOADS_FILENAME_LIST[i]}"
+    local DOWNLOAD_SOURCE_KEY
+
+    for DOWNLOAD_SOURCE_KEY in "${!DOWNLOADS_SOURCE_LIST[@]}"; do
+      local DOWNLOAD_URL_SETS="${DOWNLOADS_SOURCE_LIST[${DOWNLOAD_SOURCE_KEY}]}"
+      local DOWNLOAD_FILENAME="${DOWNLOADS_FILENAME_LIST[${DOWNLOAD_SOURCE_KEY}]}"
       local IS_DOWNLOAD_SKIPPED="no"
 
       DOWNLOAD_PATH="${_arg_destination%/}/Installer/${DOWNLOAD_FILENAME}"
@@ -1680,9 +1860,12 @@ You may read the Terms of Service at this URL:
 
     unarchiver::unarchive_file "${ITEM_NAME}" "${ARCHIVE_PATH}" "${TARGET_PATH}" "${IGNORE_PATTERNS_VAR_NAME}" "${IGNORE_PATTERNS_RECURSIVE_VAR_NAME}"
   }
-  step::unarchive_generic "Game Files" "${_arg_destination%/}/Installer/${DOWNLOADS_FILENAME_LIST[0]}" "${_arg_destination%/}" "UNPACK_IGNORE_PATTERNS"
-  step::unarchive_generic "Bonus Pack 4" "${_arg_destination%/}/Installer/${DOWNLOADS_FILENAME_LIST[1]}" "${_arg_destination%/}"
-  step::unarchive_generic "Latest Patch" "${_arg_destination%/}/Installer/${DOWNLOADS_FILENAME_LIST[2]}" "${_arg_destination%/}"
+  step::unarchive_generic "Game Files" "${_arg_destination%/}/Installer/${DOWNLOADS_FILENAME_LIST[game]}" "${_arg_destination%/}" "UNPACK_IGNORE_PATTERNS"
+  step::unarchive_generic "Bonus Pack 4" "${_arg_destination%/}/Installer/${DOWNLOADS_FILENAME_LIST[bp4]}" "${_arg_destination%/}"
+  if [[ "${_arg_unrealed}" == "on" ]]; then
+    step::unarchive_generic "Latest Patch (UnrealEd)" "${_arg_destination%/}/Installer/${DOWNLOADS_FILENAME_LIST[patch_windows]}" "${_arg_destination%/}"
+  fi
+  step::unarchive_generic "Latest Patch" "${_arg_destination%/}/Installer/${DOWNLOADS_FILENAME_LIST[patch_linux]}" "${_arg_destination%/}"
 
   # shellcheck shell=bash
 
@@ -1891,14 +2074,334 @@ You may read the Terms of Service at this URL:
 
   # shellcheck shell=bash
 
+  step::create_unrealed_launcher() {
+    term::step::new "Create UnrealEd Launch Script"
+
+    local UNREALED_WINE_PREFIX_PATH="${_arg_destination%/}/.wine-unrealed"
+    local UNREALED_LAUNCH_SCRIPT_PATH="${_arg_destination%/}/System${UEED_SYSTEM_FOLDER_SUFFIX:-}/UnrealEd-launch-linux.sh"
+
+    mkdir -p "${UNREALED_WINE_PREFIX_PATH}"
+
+    step::create_unrealed_launcher::write "${UNREALED_LAUNCH_SCRIPT_PATH}" || {
+      term::step::failed_with_error "Failed to create UnrealEd launch script. Installation aborted."
+      return 1
+    }
+    chmod +x "${UNREALED_LAUNCH_SCRIPT_PATH}" || {
+      term::step::failed_with_error "Failed to set UnrealEd launch script as executable. Installation aborted."
+      return 1
+    }
+
+    term::step::complete
+  }
+
+  step::create_unrealed_launcher::write() {
+    local FILEPATH="${1:-}"
+
+    {
+      cat <<"EOFLAUNCHER"
+#!/usr/bin/env bash
+#
+# UnrealEd Linux Launcher
+#
+# shellcheck source-path=SCRIPTDIR
+# ARGBASH_SET_INDENT([  ])
+# ARG_OPTIONAL_SINGLE([mode],[],[Informs the script on which Windows compatibility tool to use to launch UnrealEd],[auto])
+# ARG_OPTIONAL_SINGLE([wine],[],[Path to wine (when using --mode=wine)],[])
+# ARG_OPTIONAL_SINGLE([proton],[],[Path to proton compatibility tool (when using --mode=proton)],[])
+# ARG_TYPE_GROUP_SET([mode],[MODE],[mode],[auto,umu-launcher,proton,wine])
+# ARG_HELP([Launch UnrealEd])
+# ARG_VERSION_AUTO([1.0],['OldUnreal <https://oldunreal.com>'])
+# DEFINE_SCRIPT_DIR([_SCRIPT_DIR])
+# ARGBASH_GO()
+# needed because of Argbash --> m4_ignore([
+### START OF CODE GENERATED BY Argbash v2.11.0 one line above ###
+# Argbash is a bash code generator used to get arguments parsing right.
+# Argbash is FREE SOFTWARE, see https://argbash.dev for more info
+
+die() {
+  local _ret="${2:-1}"
+  test "${_PRINT_HELP:-no}" = yes && print_help >&2
+  echo "$1" >&2
+  exit "${_ret}"
+}
+
+# validators
+
+mode() {
+  local _allowed=("auto" "umu-launcher" "proton" "wine") _seeking="$1"
+  for element in "${_allowed[@]}"; do
+    test "$element" = "$_seeking" && echo "$element" && return 0
+  done
+  die "Value '$_seeking' (of argument '$2') doesn't match the list of allowed values: 'auto', 'umu-launcher', 'proton' and 'wine'" 4
+}
+
+begins_with_short_option() {
+  local first_option all_short_options='hv'
+  first_option="${1:0:1}"
+  test "$all_short_options" = "${all_short_options/$first_option/}" && return 1 || return 0
+}
+
+# THE DEFAULTS INITIALIZATION - OPTIONALS
+_arg_mode="auto"
+_arg_wine=
+_arg_proton=
+
+print_help() {
+  printf '%s\n' "Launch UnrealEd"
+  printf 'Usage: %s [--mode <MODE>] [--wine <arg>] [--proton <arg>] [-h|--help] [-v|--version]\n' "$0"
+  printf '\t%s\n' "--mode: Informs the script on which Windows compatibility tool to use to launch UnrealEd. Can be one of: 'auto', 'umu-launcher', 'proton' and 'wine' (default: 'auto')"
+  printf '\t%s\n' "--wine: Path to wine (when using --mode=wine) (no default)"
+  printf '\t%s\n' "--proton: Path to proton compatibility tool (when using --mode=proton) (no default)"
+  printf '\t%s\n' "-h, --help: Prints help"
+  printf '\t%s\n' "-v, --version: Prints version"
+}
+
+parse_commandline() {
+  local _key
+  while test $# -gt 0; do
+    _key="$1"
+    case "$_key" in
+    --mode)
+      test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
+      _arg_mode="$(mode "$2" "mode")" || exit 1
+      shift
+      ;;
+    --mode=*)
+      _arg_mode="$(mode "${_key##--mode=}" "mode")" || exit 1
+      ;;
+    --wine)
+      test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
+      _arg_wine="$2"
+      shift
+      ;;
+    --wine=*)
+      _arg_wine="${_key##--wine=}"
+      ;;
+    --proton)
+      test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
+      _arg_proton="$2"
+      shift
+      ;;
+    --proton=*)
+      _arg_proton="${_key##--proton=}"
+      ;;
+    -h | --help)
+      print_help
+      exit 0
+      ;;
+    -h*)
+      print_help
+      exit 0
+      ;;
+    -v | --version)
+      printf '%s %s\n\n%s\n%s\n' "unrealed-launch-linux.sh" "1.0" 'Launch UnrealEd' 'OldUnreal <https://oldunreal.com>'
+      exit 0
+      ;;
+    -v*)
+      printf '%s %s\n\n%s\n%s\n' "unrealed-launch-linux.sh" "1.0" 'Launch UnrealEd' 'OldUnreal <https://oldunreal.com>'
+      exit 0
+      ;;
+    *)
+      _PRINT_HELP=yes die "FATAL ERROR: Got an unexpected argument '$1'" 1
+      ;;
+    esac
+    shift
+  done
+}
+
+parse_commandline "$@"
+
+# OTHER STUFF GENERATED BY Argbash
+_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" || {
+  echo "Couldn't determine the script's running directory, which probably matters, bailing out" >&2
+  exit 2
+}
+# Validation of values
+
+### END OF CODE GENERATED BY Argbash (sortof) ### ])
+# [ <-- needed because of Argbash
+
+# Enable Bash Strict Mode
+set -euo pipefail
+
+unrealed::launcher() {
+  declare -A ansi_colornum=(
+    [black]=0
+    [red]=1
+    [green]=2
+    [yellow]=3
+    [blue]=4
+    [magenta]=5
+    [cyan]=6
+    [white]=7
+  )
+
+  declare -A ansi_stylenum=(
+    [reset]=0
+    [bright]=1
+    [dim]=2
+    [italic]=3
+    [underline]=4
+    [flash]=5
+    [highlight]=7
+    [normal]=22
+  )
+
+  ansi::styled() {
+    ALLOW_ESCAPES="off"
+    if [[ "${1:-}" == "-e" ]]; then
+      ALLOW_ESCAPES="on"
+      shift
+    fi
+
+    local TEXT_TO_PRINT="${1:-}"
+    local STYLE="${2:--1}"
+    local FORE_COLOR="${3:--1}"
+    local BACK_COLOR="${4:--1}"
+
+    declare -a CODES RESETCODES
+    if [[ "${STYLE}" -eq 22 ]] || [[ "${STYLE}" -eq -1 ]]; then
+      RESETCODES=("$(printf "\033[%sm" "22")" "${RESETCODES[@]}")
+    else
+      CODES=("${CODES[@]}" "$(printf "\033[%sm" "${STYLE}")")
+    fi
+
+    if [[ "${BACK_COLOR}" -eq -1 ]]; then
+      RESETCODES=("$(printf "\033[%sm" "49")" "${RESETCODES[@]}")
+    else
+      CODES=("${CODES[@]}" "$(printf "\033[%sm" "$((BACK_COLOR + 40))")")
+    fi
+
+    if [[ "${FORE_COLOR}" -eq -1 ]]; then
+      RESETCODES=("$(printf "\033[%sm" "39")" "${RESETCODES[@]}")
+    else
+      CODES=("${CODES[@]}" "$(printf "\033[%sm" "$((FORE_COLOR + 30))")")
+    fi
+
+    local rc
+    for rc in "${RESETCODES[@]}"; do
+      echo -en "$rc"
+    done
+    local c
+    for c in "${CODES[@]}"; do
+      echo -en "$c"
+    done
+
+    if [[ "${ALLOW_ESCAPES}" == "on" ]]; then
+      echo -en "${TEXT_TO_PRINT}"
+    else
+      echo -n "${TEXT_TO_PRINT}"
+    fi
+
+    echo -en "\033[m"
+  }
+
+  local OU_INSTALL_PATH
+  OU_INSTALL_PATH="$(cd "$(dirname "${_SCRIPT_DIR}")" && pwd)" || {
+    echo "Couldn't determine game installation directory." >&2
+    exit 2
+  }
+
+  local PREFERRED_WINEPREFIX="${WINEPREFIX:-${OU_INSTALL_PATH}/.wine-unrealed}"
+
+  unrealed::warning() {
+    echo -e "$(ansi::styled "Warning:" "${ansi_stylenum[bright]}" "${ansi_colornum[yellow]}") $*" 1>&2
+  }
+
+  unrealed::error() {
+    echo -e "$(ansi::styled "Error:" "${ansi_stylenum[bright]}" "${ansi_colornum[red]}") $*" 1>&2
+  }
+
+  local DEFAULT_PROTON="${HOME}/.steam/steam/steamapps/common/Proton - Experimental/proton"
+
+  if [[ "${_arg_mode}" == "auto" ]]; then
+    if [[ -n "${_arg_proton:-}" ]]; then
+      _arg_mode="proton"
+    elif [[ -n "${_arg_wine:-}" ]]; then
+      _arg_mode="wine"
+    fi
+
+    if command -v umu-run &>/dev/null; then
+      _arg_mode="umu-launcher"
+    elif [[ -x "${DEFAULT_PROTON}" ]]; then
+      _arg_mode="proton"
+      _arg_proton="${DEFAULT_PROTON}"
+    elif command -v wine &>/dev/null; then
+      _arg_mode="wine"
+      _arg_wine="wine"
+    fi
+  fi
+
+  if [[ "${_arg_mode}" == "umu-launcher" ]]; then
+    if ! command -v umu-run &>/dev/null; then
+      unrealed::error "Unable to find umu-run in PATH."
+      return 1
+    fi
+
+    local PREFERRED_PROTON="${_arg_proton:-${PROTONPATH:-}}"
+
+    if [[ -z "${PREFERRED_PROTON}" ]]; then
+      if [[ -x "/usr/share/steam/compatibilitytools.d/proton-ge-custom/proton" ]]; then
+        PREFERRED_PROTON="/usr/share/steam/compatibilitytools.d/proton-ge-custom"
+      else
+        PREFERRED_PROTON="GE-Proton"
+      fi
+    fi
+
+    cd "${OU_INSTALL_PATH}"
+    WINEPREFIX="${PREFERRED_WINEPREFIX}" \
+      GAMEID=umu-default \
+      STORE=none \
+      PROTONPATH="${PREFERRED_PROTON}" \
+      exec umu-run "${_SCRIPT_DIR}/UnrealEd.exe"
+  elif [[ "${_arg_mode}" == "proton" ]]; then
+    if ! command -v "${_arg_proton}" &>/dev/null; then
+      unrealed::error "--proton option is invalid."
+      return 1
+    fi
+
+    cd "${OU_INSTALL_PATH}"
+    STEAM_COMPAT_CLIENT_INSTALL_PATH="${STEAM_COMPAT_CLIENT_INSTALL_PATH:-~/.steam/steam}" \
+      STEAM_COMPAT_DATA_PATH="${PREFERRED_WINEPREFIX}" \
+      exec "${_arg_proton}" run "${_SCRIPT_DIR}/UnrealEd.exe"
+  elif [[ "${_arg_mode}" == "wine" ]]; then
+    if ! command -v "${_arg_wine}" &>/dev/null; then
+      unrealed::error "--wine option is invalid."
+      return 1
+    fi
+
+    unrealed::warning "Wine is untested, OldUnreal recommends running UnrealEd via Proton or UMU"
+
+    cd "${OU_INSTALL_PATH}"
+    WINEPREFIX="${PREFERRED_WINEPREFIX}" \
+      exec "${_arg_wine}" "${_SCRIPT_DIR}/UnrealEd.exe"
+  fi
+}
+
+unrealed::launcher
+# ] <-- needed because of Argbash
+EOFLAUNCHER
+    } >"${FILEPATH}"
+  }
+  if [[ "${_arg_unrealed}" == "on" ]]; then
+    step::create_unrealed_launcher
+  fi
+
+  # shellcheck shell=bash
+
   step::xdg_desktop_entry() {
     local STEP_NAME="${1:-}"
     local STEP_PROMPT="${2:-}"
     local DESKTOP_ENTRY_PATH="${3:-}"
-    local APPLICATION_ENTRY_HANDLING_MODE="${4:-}"
-    local SKIP_IF_ENTRY_FOLDER_DOESNT_EXIST="${5:-no}"
+    local DESKTOP_ENTRY_PATH_UNREALED="${4:-}"
+    local APPLICATION_ENTRY_HANDLING_MODE="${5:-}"
+    local SKIP_IF_ENTRY_FOLDER_DOESNT_EXIST="${6:-no}"
 
-    if [[ -z "${STEP_NAME}" ]] || [[ -z "${STEP_PROMPT}" ]] || [[ -z "${DESKTOP_ENTRY_PATH}" ]] || [[ -z "${APPLICATION_ENTRY_HANDLING_MODE}" ]]; then
+    if [[ -z "${STEP_NAME}" ]] ||
+      [[ -z "${STEP_PROMPT}" ]] ||
+      [[ -z "${DESKTOP_ENTRY_PATH}" ]] ||
+      [[ -z "${DESKTOP_ENTRY_PATH_UNREALED}" ]] ||
+      [[ -z "${APPLICATION_ENTRY_HANDLING_MODE}" ]]; then
       return 1
     fi
 
@@ -1959,6 +2462,14 @@ You may read the Terms of Service at this URL:
       term::step::failed_with_error "User does not have permission to create .desktop file."
       return 77 #E_PERM
     }
+
+    if [[ "${_arg_unrealed}" == "on" ]]; then
+      __step::xdg_desktop_entry::unrealed::create "${DESKTOP_ENTRY_PATH_UNREALED}" || {
+        term::step::failed_with_error "User does not have permission to create .desktop file."
+        return 77 #E_PERM
+      }
+    fi
+
     term::step::complete
   }
 
@@ -1967,9 +2478,15 @@ You may read the Terms of Service at this URL:
     local STEP_PROMPT="${2:-}"
     local XDG_DIR_NAME="${3:-}"
     local DESKTOP_ENTRY_PATH="${4:-}"
-    local APPLICATION_ENTRY_HANDLING_MODE="${5:-}"
+    local DESKTOP_ENTRY_PATH_UNREALED="${5:-}"
+    local APPLICATION_ENTRY_HANDLING_MODE="${6:-}"
 
-    if [[ -z "${STEP_NAME}" ]] || [[ -z "${STEP_PROMPT}" ]] || [[ -z "${XDG_DIR_NAME}" ]] || [[ -z "${DESKTOP_ENTRY_PATH}" ]] || [[ -z "${APPLICATION_ENTRY_HANDLING_MODE}" ]]; then
+    if [[ -z "${STEP_NAME}" ]] ||
+      [[ -z "${STEP_PROMPT}" ]] ||
+      [[ -z "${XDG_DIR_NAME}" ]] ||
+      [[ -z "${DESKTOP_ENTRY_PATH}" ]] ||
+      [[ -z "${DESKTOP_ENTRY_PATH_UNREALED}" ]] ||
+      [[ -z "${APPLICATION_ENTRY_HANDLING_MODE}" ]]; then
       return 1
     fi
 
@@ -1982,7 +2499,13 @@ You may read the Terms of Service at this URL:
       return 0
     fi
 
-    step::xdg_desktop_entry "${STEP_NAME}" "${STEP_PROMPT}" "${XDG_DIR_PATH}/${DESKTOP_ENTRY_PATH}" "${APPLICATION_ENTRY_HANDLING_MODE}" "yes"
+    step::xdg_desktop_entry \
+      "${STEP_NAME}" \
+      "${STEP_PROMPT}" \
+      "${XDG_DIR_PATH}/${DESKTOP_ENTRY_PATH}" \
+      "${XDG_DIR_PATH}/${DESKTOP_ENTRY_PATH_UNREALED}" \
+      "${APPLICATION_ENTRY_HANDLING_MODE}" \
+      "yes"
   }
 
   __step::xdg_desktop_entry::create() {
@@ -1993,6 +2516,10 @@ You may read the Terms of Service at this URL:
     fi
 
     local DESKTOP_ENTRY_FOLDER="${DESKTOP_ENTRY_PATH%/*}"
+
+    local SOURCE_ICON="${_arg_destination%/}/${PRODUCT_ICONPATH:-Help/Unreal.ico}"
+    local ICON_NAME
+    ICON_NAME=$(__step::xdg_desktop_entry::get_icon_name "${SOURCE_ICON}" "OldUnreal_${PRODUCT_SHORTNAME}" || echo "${SOURCE_ICON}")
 
     # Create destination folder if it doesn't exist
     if [[ ! -d "${DESKTOP_ENTRY_FOLDER}" ]]; then
@@ -2013,17 +2540,126 @@ You may read the Terms of Service at this URL:
         echo
       fi
 
-      echo "Exec="'"'"${_arg_destination%/}/System${UE_SYSTEM_FOLDER_SUFFIX:-}/${MAIN_BINARY_NAME}${ARCHITECTURE_BINARY_SUFFIX}"'"'
-      echo "Icon=${_arg_destination%/}/${PRODUCT_ICONPATH:-Help/Unreal.ico}"
+      if [[ -n "${PRODUCT_URLSCHEME:-}" ]]; then
+        echo "Exec="'"'"${_arg_destination%/}/System${UE_SYSTEM_FOLDER_SUFFIX:-}/${MAIN_BINARY_NAME}${ARCHITECTURE_BINARY_SUFFIX}"'"' %u
+        echo "MimeType=x-scheme-handler/${PRODUCT_URLSCHEME};"
+      else
+        echo "Exec="'"'"${_arg_destination%/}/System${UE_SYSTEM_FOLDER_SUFFIX:-}/${MAIN_BINARY_NAME}${ARCHITECTURE_BINARY_SUFFIX}"'"'
+      fi
+
+      echo "Icon=${ICON_NAME}"
       echo "Terminal=false"
       echo "Type=Application"
       echo "Categories=Game;"
     } >"${DESKTOP_ENTRY_PATH}"
   }
+
+  __step::xdg_desktop_entry::unrealed::create() {
+    local DESKTOP_ENTRY_PATH="${1:-}"
+
+    if [[ -z "${DESKTOP_ENTRY_PATH}" ]]; then
+      return 1
+    fi
+
+    local DESKTOP_ENTRY_FOLDER="${DESKTOP_ENTRY_PATH%/*}"
+
+    local SOURCE_ICON="${_arg_destination%/}/${PRODUCT_ICONPATH:-Help/UnrealEd.ico}"
+    local ICON_NAME
+    ICON_NAME=$(__step::xdg_desktop_entry::get_icon_name "${SOURCE_ICON}" "OldUnreal_${PRODUCT_SHORTNAME}_UnrealEd" || echo "${SOURCE_ICON}")
+
+    # Create destination folder if it doesn't exist
+    if [[ ! -d "${DESKTOP_ENTRY_FOLDER}" ]]; then
+      mkdir -p "${DESKTOP_ENTRY_FOLDER}" 2>/dev/null
+    fi
+
+    {
+      echo "[Desktop Entry]"
+      echo "Name=UnrealEd for ${PRODUCT_NAME}"
+
+      echo "Exec="'"'"${_arg_destination%/}/System${UEED_SYSTEM_FOLDER_SUFFIX:-}/UnrealEd-launch-linux.sh"'"'
+
+      echo "Icon=${ICON_NAME}"
+      echo "Terminal=false"
+      echo "Type=Application"
+      echo "Categories=Game;"
+    } >"${DESKTOP_ENTRY_PATH}"
+  }
+
+  # Automatically create png files from .ico for DEs that don't support Windows icons
+  declare -A STEP_XDG_DESKTOP_ENTRY_ICONS=()
+  __step::xdg_desktop_entry::get_icon_name() {
+    local ICON_PATH="${1:-}"
+    local TARGET_ICON_NAME="${2:-}"
+
+    if [[ -n "${STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]:-}" ]]; then
+      echo "${STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]}"
+      return 0
+    fi
+
+    if [[ ! -f "${ICON_PATH}" ]]; then
+      return 1
+    fi
+
+    if ! command -v magick &>/dev/null; then
+      STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]="${ICON_PATH}"
+      echo "${ICON_PATH}"
+      return 0
+    fi
+
+    local XDG_UNREAL_ICONS_PATH="${XDG_DATA_HOME:-${HOME}/.local/share}/icons/hicolor"
+
+    local IS_48PX_FOUND="no"
+    local IS_32PX_FOUND="no"
+    local INDIVIDUAL_ICON_INFO
+    local REGEX_ICON_INFO='^([0-9]+) ([0-9]+) ([0-9]+) ([0-9]+)$'
+
+    local ICON_INFORMATION
+    ICON_INFORMATION=$(magick identify -format "%p %h %z %k\n" "${ICON_PATH}" | sort -k3nr -k2nr -k4nr)
+
+    while IFS= read -r INDIVIDUAL_ICON_INFO; do
+      if [[ "${INDIVIDUAL_ICON_INFO}" =~ ${REGEX_ICON_INFO} ]]; then
+        local ICON_INDEX="${BASH_REMATCH[1]}"
+        local ICON_SIZE="${BASH_REMATCH[2]}"
+
+        case "${ICON_SIZE}" in
+        48)
+          if [[ "${IS_48PX_FOUND}" == "yes" ]]; then
+            continue
+          fi
+          IS_48PX_FOUND="yes"
+
+          mkdir -p "${XDG_UNREAL_ICONS_PATH}/48x48/apps"
+          magick -quiet "${ICON_PATH}[${ICON_INDEX}]" "${XDG_UNREAL_ICONS_PATH}/48x48/apps/${TARGET_ICON_NAME}.png" >/dev/null
+
+          STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]="${TARGET_ICON_NAME}"
+          ;;
+        32)
+          if [[ "${IS_32PX_FOUND}" == "yes" ]]; then
+            continue
+          fi
+          IS_32PX_FOUND="yes"
+
+          mkdir -p "${XDG_UNREAL_ICONS_PATH}/32x32/apps"
+          magick -quiet "${ICON_PATH}[${ICON_INDEX}]" "${XDG_UNREAL_ICONS_PATH}/32x32/apps/${TARGET_ICON_NAME}.png" >/dev/null
+
+          STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]="${TARGET_ICON_NAME}"
+          ;;
+        esac
+      fi
+    done <<<"${ICON_INFORMATION}"
+
+    if [[ -n "${STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]:-}" ]]; then
+      echo "${STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]}"
+    else
+      STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]="${ICON_PATH}"
+      echo "${ICON_PATH}"
+    fi
+  }
   step::xdg_desktop_entry \
     "Application Menu Entry" \
     "Do you want to create an application menu entry?" \
     "${XDG_DATA_HOME:-${HOME}/.local/share}/applications/OldUnreal-${PRODUCT_SHORTNAME}.desktop" \
+    "${XDG_DATA_HOME:-${HOME}/.local/share}/applications/OldUnreal-${PRODUCT_SHORTNAME}-UnrealEd.desktop" \
     "${_arg_application_entry}"
 
   step::xdg_desktop_entry::xdg_dir \
@@ -2031,6 +2667,7 @@ You may read the Terms of Service at this URL:
     "Do you want to create a shortcut on your desktop?" \
     "DESKTOP" \
     "${PRODUCT_SHORTNAME}.desktop" \
+    "UnrealEd-${PRODUCT_SHORTNAME}.desktop" \
     "${_arg_desktop_shortcut}"
 
   # shellcheck shell=bash

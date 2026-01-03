@@ -40,6 +40,7 @@ The installation scripts support various command line flags to customise your in
 --ui-mode: UI library to use during install.. Can be one of: 'auto', 'kdialog', 'zenity' and 'none' (default: 'auto')
 --application-entry: Action to take when installing the XDG Application Entry.. Can be one of: 'install', 'prompt' and 'skip' (default: 'prompt')
 --desktop-shortcut: Action to take when installing a desktop shortcut.. Can be one of: 'install', 'prompt' and 'skip' (default: 'prompt')
+-e, --unrealed, --no-unrealed: Install UnrealEd (Windows, umu-launcher recommended). (off by default)
 -k, --keep-installer-files, --no-keep-installer-files: Keep ISO and Patch files. (off by default)
 -h, --help: Prints help
 -v, --version: Prints version
@@ -51,9 +52,20 @@ The script has the following dependencies:
   - `bash`
   - `coreutils`
   - `jq`
-  - `7zip` (alternatively: `p7zip-full` \[Debian\], `7zip-standalone-all` \[Fedora/RHEL\])
+  - `tar`
+  - `7zip` (alternatively: `7zip` \[Debian > bookworm\], `p7zip-full` \[Debian\ <= bookworm], `7zip-standalone-all` \[Fedora/RHEL\])
   - `curl` (or `wget`/`wget2` \[Fedora\])
 
 Please refer to your distro's documentation on how to install these dependencies.
 
+## UnrealEd
+
+UnrealEd can be used via a Windows compatibility tool. To install the UnrealEd binaries, specify the `--unrealed` flag when running the install script.
+
+This will install the Windows patch alongside the Linux patch, and create a bash script to launch UnrealEd. By default, the launcher script will try to use [umu-launcher][umu] if installed, and fallback to Proton or Wine if not.
+
+> [!WARNING]
+> UnrealEd is not tested under Linux. We recommend that you use Windows natively instead.
+
 [tos]: https://legal.epicgames.com/en-US/epicgames/tos
+[umu]: https://github.com/Open-Wine-Components/umu-launcher
