@@ -1,6 +1,6 @@
 # OldUnreal Linux Installers
 
-This folder contains the OldUnreal installers for Unreal Gold, and Unreal Tournament: GOTY.
+This folder contains the OldUnreal installers for Unreal Gold, Unreal Tournament: GOTY, and Unreal Tournament 2004.
 
 > [!IMPORTANT]
 > The [Epic Games Terms of Service][tos] apply to the use and distribution of these games, and they supersede any other end user agreements that may accompany them.
@@ -18,6 +18,7 @@ This folder contains the OldUnreal installers for Unreal Gold, and Unreal Tourna
 1. Download the .desktop file for the title you wish to install:
   - <a href="https://raw.githubusercontent.com/OldUnreal/FullGameInstallers/master/Linux/install-unreal.desktop" download>Unreal Gold</a>
   - <a href="https://raw.githubusercontent.com/OldUnreal/FullGameInstallers/master/Linux/install-ut99.desktop" download>Unreal Tournament: GOTY</a>
+  - <a href="https://raw.githubusercontent.com/OldUnreal/FullGameInstallers/master/Linux/install-ut2004.desktop" download>Unreal Tournament 2004</a>
 
 2. Double-click on the downloaded file. Select **[ Continue ]** or **[ Execute ]** if prompted.
 
@@ -28,6 +29,7 @@ This folder contains the OldUnreal installers for Unreal Gold, and Unreal Tourna
 1. Download the installation script for the title you wish to install:
   - <a href="https://raw.githubusercontent.com/OldUnreal/FullGameInstallers/master/Linux/install-unreal.sh" download>Unreal Gold</a>
   - <a href="https://raw.githubusercontent.com/OldUnreal/FullGameInstallers/master/Linux/install-ut99.sh" download>Unreal Tournament: GOTY</a>
+  - <a href="https://raw.githubusercontent.com/OldUnreal/FullGameInstallers/master/Linux/install-ut2004.sh" download>Unreal Tournament 2004</a>
 
 2. Mark the downloaded script as executable by running `chmod +x install-title.sh` (replacing `install-title.sh` with the name of the script you downloaded).
 
@@ -55,6 +57,7 @@ The script has the following dependencies:
   - `tar`
   - `7zip` (alternatively: `7zip` \[Debian > bookworm\], `p7zip-full` \[Debian\ <= bookworm], `7zip-standalone-all` \[Fedora/RHEL\])
   - `curl` (or `wget`/`wget2` \[Fedora\])
+  - `unshield` (UT2004 only)
 
 Please refer to your distro's documentation on how to install these dependencies.
 

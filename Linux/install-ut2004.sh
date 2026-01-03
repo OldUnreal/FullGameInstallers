@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 #
-# Unreal Gold Linux Installer
+# Unreal Tournament 2004 Linux Installer
 #
 # shellcheck source-path=SCRIPTDIR
 # ARGBASH_SET_INDENT([  ])
-# ARG_OPTIONAL_SINGLE([destination],[d],[Install directory. Will be created if it doesn't exist.],[${XDG_DATA_HOME:-${HOME}/.local/share}/OldUnreal/UnrealGold])
+# ARG_OPTIONAL_SINGLE([destination],[d],[Install directory. Will be created if it doesn't exist.],[${XDG_DATA_HOME:-${HOME}/.local/share}/OldUnreal/UT2004])
 # ARG_OPTIONAL_SINGLE([ui-mode],[],[UI library to use during install.],[auto])
 # ARG_TYPE_GROUP_SET([uimode],[MODE],[ui-mode],[auto,kdialog,zenity,none])
 # ARG_OPTIONAL_SINGLE([application-entry],[],[Action to take when installing the XDG Application Entry.],[prompt])
@@ -12,7 +12,7 @@
 # ARG_TYPE_GROUP_SET([entryhandlingmode],[ACTION],[application-entry,desktop-shortcut],[install,prompt,skip])
 # ARG_OPTIONAL_BOOLEAN([unrealed],[e],[Install UnrealEd (Windows, umu-launcher recommended).],[])
 # ARG_OPTIONAL_BOOLEAN([keep-installer-files],[k],[Keep ISO and Patch files.],[])
-# ARG_HELP([Install Unreal Gold])
+# ARG_HELP([Install Unreal Tournament 2004])
 # ARG_VERSION_AUTO([1.2],['OldUnreal <https://oldunreal.com>'])
 # DEFINE_SCRIPT_DIR([_SCRIPT_DIR])
 # ARGBASH_GO()
@@ -53,7 +53,7 @@ begins_with_short_option() {
 }
 
 # THE DEFAULTS INITIALIZATION - OPTIONALS
-_arg_destination="${XDG_DATA_HOME:-${HOME}/.local/share}/OldUnreal/UnrealGold"
+_arg_destination="${XDG_DATA_HOME:-${HOME}/.local/share}/OldUnreal/UT2004"
 _arg_ui_mode="auto"
 _arg_application_entry="prompt"
 _arg_desktop_shortcut="prompt"
@@ -61,9 +61,9 @@ _arg_unrealed="off"
 _arg_keep_installer_files="off"
 
 print_help() {
-  printf '%s\n' "Install Unreal Gold"
+  printf '%s\n' "Install Unreal Tournament 2004"
   printf 'Usage: %s [-d|--destination <arg>] [--ui-mode <MODE>] [--application-entry <ACTION>] [--desktop-shortcut <ACTION>] [-e|--(no-)unrealed] [-k|--(no-)keep-installer-files] [-h|--help] [-v|--version]\n' "$0"
-  printf '\t%s\n' "-d, --destination: Install directory. Will be created if it doesn't exist. (default: '${XDG_DATA_HOME:-${HOME}/.local/share}/OldUnreal/UnrealGold')"
+  printf '\t%s\n' "-d, --destination: Install directory. Will be created if it doesn't exist. (default: '${XDG_DATA_HOME:-${HOME}/.local/share}/OldUnreal/UT2004')"
   printf '\t%s\n' "--ui-mode: UI library to use during install.. Can be one of: 'auto', 'kdialog', 'zenity' and 'none' (default: 'auto')"
   printf '\t%s\n' "--application-entry: Action to take when installing the XDG Application Entry.. Can be one of: 'install', 'prompt' and 'skip' (default: 'prompt')"
   printf '\t%s\n' "--desktop-shortcut: Action to take when installing a desktop shortcut.. Can be one of: 'install', 'prompt' and 'skip' (default: 'prompt')"
@@ -144,11 +144,11 @@ parse_commandline() {
       exit 0
       ;;
     -v | --version)
-      printf '%s %s\n\n%s\n%s\n' "install-unreal.sh" "1.2" 'Install Unreal Gold' 'OldUnreal <https://oldunreal.com>'
+      printf '%s %s\n\n%s\n%s\n' "install-ut2004.sh" "1.2" 'Install Unreal Tournament 2004' 'OldUnreal <https://oldunreal.com>'
       exit 0
       ;;
     -v*)
-      printf '%s %s\n\n%s\n%s\n' "install-unreal.sh" "1.2" 'Install Unreal Gold' 'OldUnreal <https://oldunreal.com>'
+      printf '%s %s\n\n%s\n%s\n' "install-ut2004.sh" "1.2" 'Install Unreal Tournament 2004' 'OldUnreal <https://oldunreal.com>'
       exit 0
       ;;
     *)
@@ -176,9 +176,11 @@ set -euo pipefail
 
 installer::entrypoint() {
   # Defining Installation Parameters
-  local PRODUCT_NAME="Unreal Gold"
-  local PRODUCT_SHORTNAME="UnrealGold"
-  local MAIN_BINARY_NAME="unreal-bin"
+  local PRODUCT_NAME="Unreal Tournament 2004"
+  local PRODUCT_SHORTNAME="UT2004"
+  local PRODUCT_KEYWORDS=("UT2004" "UT2K4")
+  local PRODUCT_URLSCHEME="ut2004"
+  local MAIN_BINARY_NAME="UT2004"
 
   # Import Library files
   # shellcheck shell=bash
@@ -1301,19 +1303,19 @@ installer::entrypoint() {
   }
 
   # Patch Metadata Download Step
-  PATCH_METADATA_URL="https://api.github.com/repos/OldUnreal/Unreal-testing/releases"
+  PATCH_METADATA_URL="https://api.github.com/repos/OldUnreal/UT2004Patches/releases"
 
   # Download Steps
   # shellcheck disable=SC2034 # Used dynamically below
   local TITLE_PRIMARY_DOWNLOAD_SOURCES=(
-    "https://files.oldunreal.net/UNREAL_GOLD.ISO|676734976|7e360d0cc9e5533f38859819fd3cbfea7c475ecd428f9f433b5f8e1d5742cbca"
-    "https://files2.oldunreal.net/UNREAL_GOLD.ISO|676734976|7e360d0cc9e5533f38859819fd3cbfea7c475ecd428f9f433b5f8e1d5742cbca"
-    "https://files3.oldunreal.net/UNREAL_GOLD.ISO|676734976|7e360d0cc9e5533f38859819fd3cbfea7c475ecd428f9f433b5f8e1d5742cbca"
+    "https://files.oldunreal.net/UT2004.ISO|2995322880|43e9182ae20bcbc0f6f4588fee6c1b336c261f1465403118a1973b09b1a22541"
+    "https://files2.oldunreal.net/UT2004.ISO|2995322880|43e9182ae20bcbc0f6f4588fee6c1b336c261f1465403118a1973b09b1a22541"
+    "https://files3.oldunreal.net/UT2004.ISO|2995322880|43e9182ae20bcbc0f6f4588fee6c1b336c261f1465403118a1973b09b1a22541"
   )
 
   # shellcheck disable=SC2034 # Used dynamically below
   local TITLE_BACKUP_DOWNLOAD_SOURCES=(
-    "https://archive.org/download/totallyunreal/UNREAL_GOLD.ISO|676734976|7e360d0cc9e5533f38859819fd3cbfea7c475ecd428f9f433b5f8e1d5742cbca"
+    "https://archive.org/download/ut-2004/UT2004.ISO|3751510016|7ae95242aa23d5e31b353811e1e920a4377fa53cf728b8edcb17006b7f3c4e97"
   )
 
   # Build Download sources
@@ -1322,41 +1324,19 @@ installer::entrypoint() {
   )
 
   declare -A DOWNLOADS_FILENAME_LIST=(
-    [game]="UNREAL_GOLD.iso"
+    [game]="UT2004.iso"
   )
 
   # Game Data Unpacking
   # shellcheck disable=SC2034 # Used dynamically
   local UNPACK_IGNORE_PATTERNS=(
-    # Default ini files
-    'SYSTEM/Unreal.ini'
-    'SYSTEM/User.ini'
-
-    # Windows specific binaries
-    'SYSTEM/*.bat'
-    'SYSTEM/*.dll'
-    'SYSTEM/*.exe'
-
     # Old Setup Files
-    'AUTORUN.INF'
-    'AUTOPLAY.EXE'
-    'SETUP.EXE'
-    'UNINSTAL.EXE'
-    'DIRECTX7'
-    'MANUALS/Acrobat'
-
-    # Translation Files
-    'SYSTEMLOCALIZED'
-    'SYSTEM/*.ctt'
-    'SYSTEM/*.det'
-    'SYSTEM/*.elt'
-    'SYSTEM/*.est'
-    'SYSTEM/*.frt'
-    'SYSTEM/*.int'
-    'SYSTEM/*.itt'
-    'SYSTEM/*.nlt'
-    'SYSTEM/*.ptt'
-    'SYSTEM/*.rut'
+    'AutoRunData'
+    'Disk1/layout.bin'
+    'Disk1/Setup.*'
+    'Disk1/setup.*'
+    'SoNow'
+    '*.*'
   )
 
   # shellcheck shell=bash
@@ -1865,34 +1845,238 @@ You may read the Terms of Service at this URL:
 
   # shellcheck shell=bash
 
-  step::unrealgold_correct_casing() {
-    term::step::new "Correct File Casing"
+  step::ut2004_unpack_cabs() {
+    term::step::new "Unpack Install CABs"
 
-    local FOLDERS_TO_FIX=(
-      "HELP|Help"
-      "MANUALS|Manuals"
-      "MAPS|Maps"
-      "MUSIC|Music"
-      "SOUNDS|Sounds"
-      "SYSTEM|System"
-      "TEXTURES|Textures"
+    local STAGING_PATH="${_arg_destination%/}/Installer/.staging"
+    local CABS_PATH="${STAGING_PATH}/Cabs"
+    local TARGET_PATH="${STAGING_PATH}/Data"
+
+    if [[ -d "${CABS_PATH}" ]]; then
+      rm -rf "${CABS_PATH}" &>/dev/null || {
+        term::step::failed_with_error "User does not have permission to create staging folder. Aborting installation."
+        return 77 #E_PERM
+      }
+    fi
+
+    # Create the cabs folder
+    mkdir -p "${CABS_PATH}" &>/dev/null || {
+      term::step::failed_with_error "User does not have permission to create staging folder. Aborting installation."
+      return 77 #E_PERM
+    }
+
+    {
+      local DISK_FOLDER
+      for DISK_FOLDER in "${STAGING_PATH}"/Disk*; do
+        if [[ ! -d "${DISK_FOLDER}" ]]; then
+          continue
+        fi
+
+        local DISK_CAB
+        for DISK_CAB in "${DISK_FOLDER}"/*.cab; do
+          if [[ ! -f "${DISK_CAB}" ]]; then
+            continue
+          fi
+
+          local DISK_CAB_BASE="${DISK_CAB##*/}"
+          ln -fs "${DISK_CAB}" "${CABS_PATH}/${DISK_CAB_BASE}"
+        done
+
+        for DISK_CAB in "${DISK_FOLDER}"/*.hdr; do
+          if [[ ! -f "${DISK_CAB}" ]]; then
+            continue
+          fi
+
+          local DISK_CAB_BASE="${DISK_CAB##*/}"
+          ln -fs "${DISK_CAB}" "${CABS_PATH}/${DISK_CAB_BASE}"
+        done
+      done
+    } || {
+      term::step::failed_with_error "Failed to prepare cabs for unpacking. Aborting installation."
+      return 1
+    }
+
+    if [[ ! -d "${TARGET_PATH}" ]]; then
+      # Create the installation folder
+      mkdir -p "${TARGET_PATH}" &>/dev/null || {
+        term::step::failed_with_error "User does not have permission to create staging folder. Aborting installation."
+        return 77 #E_PERM
+      }
+    fi
+
+    local KDIALOG_DBUS_ADDRESS=()
+
+    if [[ "${_arg_ui_mode:-none}" == "kdialog" ]]; then
+      read -ra KDIALOG_DBUS_ADDRESS < <(kdialog --title "${CURRENT_STEP_NAME}" --progressbar "Unpacking install CABs..." 0 2>/dev/null)
+      busctl --user call "${KDIALOG_DBUS_ADDRESS[@]}" "org.kde.kdialog.ProgressDialog" "showCancelButton" b "false" 2>/dev/null || true
+    fi
+
+    helper::progress::make_consistant __step::ut2004_unpack_cabs::run "${CABS_PATH}/data1.cab" "${TARGET_PATH}" | while IFS= read -r UNPACK_PROGRESS; do
+      if [[ -z "${UNPACK_PROGRESS}" ]]; then
+        term::step::progress "" >&6
+
+        if [[ "${_arg_ui_mode:-none}" == "kdialog" ]]; then
+          busctl --user set-property "${KDIALOG_DBUS_ADDRESS[@]}" "org.kde.kdialog.ProgressDialog" "maximum" i 0 2>/dev/null || true
+        fi
+        continue
+      fi
+
+      local TOTAL_FILES PERCENT CURRENT_FILE_INDEX FILE_NAME
+
+      TOTAL_FILES=$(helper::string::unshift::next_value "${UNPACK_PROGRESS}")
+      UNPACK_PROGRESS=$(helper::string::unshift::remainder "${UNPACK_PROGRESS}")
+
+      PERCENT=$(helper::string::unshift::next_value "${UNPACK_PROGRESS}")
+      UNPACK_PROGRESS=$(helper::string::unshift::remainder "${UNPACK_PROGRESS}")
+
+      CURRENT_FILE_INDEX=$(helper::string::unshift::next_value "${UNPACK_PROGRESS}")
+      UNPACK_PROGRESS=$(helper::string::unshift::remainder "${UNPACK_PROGRESS}")
+
+      FILE_NAME=$(helper::string::unshift::next_value "${UNPACK_PROGRESS}")
+      UNPACK_PROGRESS=$(helper::string::unshift::remainder "${UNPACK_PROGRESS}")
+
+      term::step::progress "${CURRENT_FILE_INDEX} of ${TOTAL_FILES} - ${FILE_NAME}" >&6
+
+      local DIALOG_TEXT="Unpacking ${FILE_NAME} (${CURRENT_FILE_INDEX} of ${TOTAL_FILES})"
+
+      if [[ "${_arg_ui_mode:-none}" == "kdialog" ]]; then
+        local ESCAPED_DIALOG_TEXT
+        ESCAPED_DIALOG_TEXT="$(echo -e "${DIALOG_TEXT}")"
+        busctl --user set-property "${KDIALOG_DBUS_ADDRESS[@]}" "org.kde.kdialog.ProgressDialog" "maximum" i "${TOTAL_FILES}" 2>/dev/null || true
+        busctl --user set-property "${KDIALOG_DBUS_ADDRESS[@]}" "org.kde.kdialog.ProgressDialog" "value" i "${CURRENT_FILE_INDEX}" 2>/dev/null || true
+        busctl --user call "${KDIALOG_DBUS_ADDRESS[@]}" "org.kde.kdialog.ProgressDialog" "setLabelText" s "${ESCAPED_DIALOG_TEXT}" 2>/dev/null || true
+      elif [[ "${_arg_ui_mode:-none}" == "zenity" ]]; then
+        echo "${PERCENT}"
+        echo "# ${DIALOG_TEXT}"
+      fi
+    done | {
+      if [[ "${_arg_ui_mode:-none}" == "zenity" ]]; then
+        zenity --progress --percentage=0 --text="Unpacking maps..." --no-cancel --time-remaining --auto-close 2>/dev/null
+      else
+        cat - >/dev/null
+      fi
+    } || {
+      if [[ "${_arg_ui_mode:-none}" == "kdialog" ]]; then
+        busctl --user call "${KDIALOG_DBUS_ADDRESS[@]}" "org.kde.kdialog.ProgressDialog" "close" 2>/dev/null || true
+      fi
+
+      term::step::failed_with_error "Failed to unpack CABs. Installation aborted."
+      return 1
+    }
+
+    if [[ "${_arg_ui_mode:-none}" == "kdialog" ]]; then
+      busctl --user call "${KDIALOG_DBUS_ADDRESS[@]}" "org.kde.kdialog.ProgressDialog" "close" 2>/dev/null || true
+    fi
+
+    rm -rf "${CABS_PATH}" &>/dev/null || {
+      term::step::failed_with_error "User does not have permission to remove temporary staging folder for CABs. Aborting installation."
+      return 77 #E_PERM
+    }
+
+    term::step::complete
+  }
+
+  __step::ut2004_unpack_cabs::run() {
+    local CAB_FILE="${1:-}"
+    local WRITE_TO_PATH="${2:-}"
+
+    local UNSHIELD_BIN="unshield"
+
+    if [[ "${DOWNLOADS_FILENAME_LIST[unshield]:-}" == "unshield" ]]; then
+      UNSHIELD_BIN="${_arg_destination%/}/Installer/unshield"
+
+      if [[ ! -f "${UNSHIELD_BIN}" ]]; then
+        term::error "unshield binary not present"
+        return 1
+      fi
+
+      chmod +x "${UNSHIELD_BIN}"
+    fi
+
+    local RAW_TOTAL_FILES_TO_EXTRACT TOTAL_FILES_TO_EXTRACT
+    RAW_TOTAL_FILES_TO_EXTRACT=$("${UNSHIELD_BIN}" l "${CAB_FILE}" | tail -n1)
+
+    local LINE_MATCH_REGEX='^\s*([0-9]+)'
+
+    if [[ "${RAW_TOTAL_FILES_TO_EXTRACT}" =~ ${LINE_MATCH_REGEX} ]]; then
+      TOTAL_FILES_TO_EXTRACT="${BASH_REMATCH[1]}"
+    fi
+
+    local CURRENT_FILE_INDEX=0
+    local EXTRACTING_MATCH_REGEX='^\s*extracting:\s+(.+)$'
+
+    "${UNSHIELD_BIN}" -d "${WRITE_TO_PATH}" x "${CAB_FILE}" |
+      while IFS= read -r UNPACK_PROGRESS; do
+        if [[ "${UNPACK_PROGRESS}" =~ ${EXTRACTING_MATCH_REGEX} ]]; then
+          local CURRENT_FILE="${BASH_REMATCH[1]##*/}"
+
+          local PERCENT_PROGRESS="$(((CURRENT_FILE_INDEX * 100) / TOTAL_FILES_TO_EXTRACT))"
+          CURRENT_FILE_INDEX=$((CURRENT_FILE_INDEX + 1))
+
+          echo "${TOTAL_FILES_TO_EXTRACT}|${PERCENT_PROGRESS}|${CURRENT_FILE_INDEX}|${CURRENT_FILE}"
+        fi
+      done
+  }
+  step::ut2004_unpack_cabs
+
+  # shellcheck shell=bash
+
+  step::ut2004_install_files() {
+    term::step::new "Install Files"
+
+    local STAGING_DATA_FOLDER="${_arg_destination%/}/Installer/.staging/Data"
+
+    local FOLDERS_AND_TARGETS=(
+      'All_Animations|Animations'
+      'All_Benchmark|Benchmark'
+      'All_ForceFeedback|ForceFeedback'
+      'All_Help|Help'
+      'All_KarmaData|KarmaData'
+      'All_Maps|Maps'
+      'All_Music|Music'
+      'All_StaticMeshes|StaticMeshes'
+      'All_Textures|Textures'
+      'All_Web|Web'
+      'All_UT2004.EXE|System'
+      'English_Manual|Manual'
+      'English_Sounds_Speech_System_Help|'
     )
+
+    # Backup file doesn't have US_License file group
+    if [[ -d "${STAGING_DATA_FOLDER}/US_License.int" ]]; then
+      FOLDERS_AND_TARGETS+=('US_License.int|System')
+    fi
+
+    # Let's first remove any files which are not required due to us targeting Linux
+    rm -f "${STAGING_DATA_FOLDER}/All_UT2004.EXE/"*.exe 2>/dev/null || true
+    rm -f "${STAGING_DATA_FOLDER}/English_Sounds_Speech_System_Help/System/"*.bat 2>/dev/null || true
+    rm -f "${STAGING_DATA_FOLDER}/English_Sounds_Speech_System_Help/System/"*.dll 2>/dev/null || true
+    rm -f "${STAGING_DATA_FOLDER}/English_Sounds_Speech_System_Help/System/"*.exe 2>/dev/null || true
+
+    # Check if we are istalling on top of a Steam install of UT2004, and rename the lower-case Maps folder is that's the case
+    if [[ -d "${_arg_destination%/}/maps" ]] && [[ ! -d "${_arg_destination%/}/Maps" ]]; then
+      mv "${_arg_destination%/}/maps" "${_arg_destination%/}/Maps"
+    fi
 
     local FOLDER_PAIR
 
-    for FOLDER_PAIR in "${FOLDERS_TO_FIX[@]}"; do
-      local FOLDER_UCASE="${FOLDER_PAIR%|*}"
+    for FOLDER_PAIR in "${FOLDERS_AND_TARGETS[@]}"; do
+      local FOLDER_SOURCE="${FOLDER_PAIR%|*}"
       local FOLDER_TARGET="${FOLDER_PAIR#*|}"
+      local RESOLVED_TARGET="${_arg_destination}"
 
-      term::step::progress "${FOLDER_TARGET}"
+      term::step::progress "${FOLDER_SOURCE}"
 
-      mkdir -p "${_arg_destination%/}/${FOLDER_TARGET}" 2>/dev/null || {
-        term::step::failed_with_error "User does not have permission to create the target folder (${FOLDER_TARGET}). Aborting installation."
-        return 77 #E_PERM
-      }
+      if [[ -n "${FOLDER_TARGET}" ]]; then
+        mkdir -p "${_arg_destination%/}/${FOLDER_TARGET}" 2>/dev/null || {
+          term::step::failed_with_error "User does not have permission to create the target folder (${FOLDER_TARGET}). Aborting installation."
+          return 77 #E_PERM
+        }
+        RESOLVED_TARGET="${_arg_destination%/}/${FOLDER_TARGET}"
+      fi
 
-      cp -rf "${_arg_destination%/}/Installer/.staging/${FOLDER_UCASE}/"* "${_arg_destination%/}/${FOLDER_TARGET}/" 2>/dev/null || {
-        term::step::failed_with_error "Failed to copy file to target folder (${FOLDER_TARGET}). Aborting installation."
+      cp -rf "${STAGING_DATA_FOLDER}/${FOLDER_SOURCE}/"* "${RESOLVED_TARGET}/" || {
+        term::step::failed_with_error "Failed to copy files to target folder (${FOLDER_TARGET}). Aborting installation."
         return 77 #E_PERM
       }
     done
@@ -1905,7 +2089,7 @@ You may read the Terms of Service at this URL:
 
     term::step::complete
   }
-  step::unrealgold_correct_casing
+  step::ut2004_install_files
 
   if [[ "${_arg_unrealed}" == "on" ]]; then
     step::unarchive_generic "Latest Patch (UnrealEd)" "${_arg_destination%/}/Installer/${DOWNLOADS_FILENAME_LIST[patch_windows]}" "${_arg_destination%/}"
@@ -1914,70 +2098,83 @@ You may read the Terms of Service at this URL:
 
   # shellcheck shell=bash
 
-  # This step is mostly provided in case a user installs on top of an existing install (from Steam for example)
-  step::remove_extra_i18n_files() {
-    local I18N_IDENTIFIERS=(
-      "ctt"
-      "det"
-      "elt"
-      "est"
-      "frt"
-      "kot"
-      "int"
-      "itt"
-      "nlt"
-      "ptt"
-      "rut"
-      "smt"
-      "tmt"
-    )
+  step::ut2004_special_fixes() {
+    term::step::new "Apply UT2004 Specific Fixes"
 
-    local SYS_LOCALIZED_PATH="${_arg_destination%/}/SystemLocalized"
-    local SYS_PATH="${_arg_destination%/}/System"
+    local SYSTEM_FOLDER="${_arg_destination%/}/System${UE_SYSTEM_FOLDER_SUFFIX}"
 
-    if [[ ! -d "${SYS_LOCALIZED_PATH}" ]]; then
+    # Remove provided libopenal if provided by the system
+    if [[ -f "${SYSTEM_FOLDER}/libopenal.so.1" ]] && [[ -f "/usr/lib/libopenal.so.1" ]]; then
+      rm -f "${SYSTEM_FOLDER}/libopenal.so.1" "${SYSTEM_FOLDER}/libopenal.so.1."*
+    fi
+
+    # Remove provided libSDL3 if provided by the system
+    if [[ -f "${SYSTEM_FOLDER}/libSDL3.so.0" ]] && [[ -f "/usr/lib/libSDL3.so.0" ]]; then
+      rm -f "${SYSTEM_FOLDER}/libSDL3.so.0" "${SYSTEM_FOLDER}/libSDL3.so.0."*
+    fi
+
+    # libomp fixes
+    local SYSTEM_PROVIDED_LIBOMP_PATH=""
+    local LIBOMP_REQUIRES_SYMLINK="no"
+
+    if [[ -f "/usr/lib/libomp.so.5" ]]; then
+      SYSTEM_PROVIDED_LIBOMP_PATH="/usr/lib/libomp.so.5"
+    elif [[ -f "/usr/lib/libomp.so" ]]; then
+      LIBOMP_REQUIRES_SYMLINK="yes"
+      SYSTEM_PROVIDED_LIBOMP_PATH="/usr/lib/libomp.so"
+    fi
+
+    # Remove provided libomp.so.5 is one is provided by the system
+    if [[ -f "${SYSTEM_FOLDER}/libomp.so.5" ]] && [[ -n "${SYSTEM_PROVIDED_LIBOMP_PATH}" ]]; then
+      rm -f "${SYSTEM_FOLDER}/libomp.so.5" "${SYSTEM_FOLDER}/libomp.so.5."*
+    fi
+
+    if [[ "${LIBOMP_REQUIRES_SYMLINK}" == "yes" ]]; then
+      ln -s "${SYSTEM_PROVIDED_LIBOMP_PATH}" "${SYSTEM_FOLDER}/libomp.so.5"
+    fi
+
+    step::ut2004_special_fixes::replace_line_in_file "${HOME}/.ut2004/System/UT2004.ini" "MainMenuClass=GUI2K4.UT2K4MainMenu" "MainMenuClass=GUI2K4.UT2K4MainMenuWS"
+    step::ut2004_special_fixes::replace_line_in_file "${SYSTEM_FOLDER}/UT2004.ini" "MainMenuClass=GUI2K4.UT2K4MainMenu" "MainMenuClass=GUI2K4.UT2K4MainMenuWS"
+
+    term::step::complete
+  }
+
+  # To avoid having a dependency on 'sed', this is being done manually
+  step::ut2004_special_fixes::replace_line_in_file() {
+    local FILENAME="${1:-}"
+    local LINE_TO_REPLACE="${2:-}"
+    local REPLACEMENT_LINE="${3:-}"
+
+    if [[ -z "${FILENAME}" ]] || [[ -z "${LINE_TO_REPLACE}" ]] || [[ -z "${REPLACEMENT_LINE}" ]]; then
+      term::step::failed_with_error "ASSERT FAILED. Missing required arg in step::ut2004_special_fixes::replace_line_in_file"
+      return 1
+    fi
+
+    if [[ ! -f "${FILENAME}" ]]; then
       return 0
     fi
 
-    term::step::new "Remove extra localization files"
+    local FILE_CONTENTS FILE_LINE
+    FILE_CONTENTS="$(cat "${FILENAME}")"
 
-    {
-      local I18N_IDENTIFIER
-      for I18N_IDENTIFIER in "${I18N_IDENTIFIERS[@]}"; do
-        local LOC_FILES=()
-        local LOC_FILE
+    local FILE_NEW_CONTENTS=""
 
-        if [[ -d "${SYS_LOCALIZED_PATH}/${I18N_IDENTIFIER}" ]]; then
-          for LOC_FILE in "${SYS_LOCALIZED_PATH}/${I18N_IDENTIFIER}/"*".${I18N_IDENTIFIER}"; do
-            if [[ ! -f "${LOC_FILE}" ]]; then
-              continue
-            fi
+    local IS_CONTENT_FOUND="no"
 
-            LOC_FILES+=("${LOC_FILE##*/}")
-          done
-        fi
+    while IFS= read -r FILE_LINE; do
+      if [[ "${FILE_LINE}" == "${LINE_TO_REPLACE}" ]]; then
+        IS_CONTENT_FOUND="yes"
+        FILE_NEW_CONTENTS="${FILE_NEW_CONTENTS}"$'\n'"${REPLACEMENT_LINE}"
+      else
+        FILE_NEW_CONTENTS="${FILE_NEW_CONTENTS}"$'\n'"${FILE_LINE}"
+      fi
+    done <<<"${FILE_CONTENTS}"
 
-        for LOC_FILE in "${SYS_LOCALIZED_PATH}/"*".${I18N_IDENTIFIER}"; do
-          if [[ ! -f "${LOC_FILE}" ]]; then
-            continue
-          fi
-
-          LOC_FILES+=("${LOC_FILE##*/}")
-        done
-
-        for LOC_FILE in "${LOC_FILES[@]}"; do
-          if [[ -f "${SYS_PATH}/${LOC_FILE}" ]]; then
-            rm -f "${SYS_PATH}/${LOC_FILE}"
-          fi
-        done
-      done
-      term::step::complete
-    } || {
-      term::step::failed_with_error "Unable to remove extra localization files"
-      return 1
-    }
+    if [[ "${IS_CONTENT_FOUND}" == "yes" ]]; then
+      echo "${FILE_NEW_CONTENTS}" >"${FILENAME}"
+    fi
   }
-  step::remove_extra_i18n_files
+  step::ut2004_special_fixes
 
   # shellcheck shell=bash
 
