@@ -8,16 +8,16 @@ local DOWNLOADER_API_TYPE=""
 local DOWNLOADER_DL_BIN=""
 local DOWNLOADER_DL_TYPE=""
 
-local DOWNLOADER_USER_AGENT="OldUnreal-${PRODUCT_SHORTNAME}-Linux-Installer/1.1"
+local DOWNLOADER_USER_AGENT="OldUnreal-${PRODUCT_SHORTNAME}-Linux-Installer/1.2"
 
 # For archive.org links, aria2c will be instructed to open multiple connections at the same time
 local ARIA2C_ARCHIVEORG_CONNECTIONS="${OLDUNREAL_ARCHIVEORG_ARIA2C_CONNECTIONS:-4}"
 
 # Check which command should be used for API calls
-if command -pv "curl" &>/dev/null; then
+if command -v "curl" &>/dev/null; then
   DOWNLOADER_API_BIN="curl"
   DOWNLOADER_API_TYPE="curl"
-elif command -pv "wget" &>/dev/null; then
+elif command -v "wget" &>/dev/null; then
   DOWNLOADER_API_BIN="wget"
   DOWNLOADER_API_TYPE="wget"
 
@@ -25,13 +25,13 @@ elif command -pv "wget" &>/dev/null; then
   if [[ "$(wget --version)" =~ " Wget2 " ]]; then
     DOWNLOADER_API_TYPE="wget2"
   fi
-elif command -pv "wget2" &>/dev/null; then
+elif command -v "wget2" &>/dev/null; then
   DOWNLOADER_API_BIN="wget2"
   DOWNLOADER_API_TYPE="wget2"
 fi
 
 # Check which command should be used for downloads
-if command -pv "aria2c" &>/dev/null; then
+if command -v "aria2c" &>/dev/null; then
   DOWNLOADER_DL_BIN="aria2c"
   DOWNLOADER_DL_TYPE="aria2c"
 else
@@ -149,9 +149,9 @@ downloader::compute_sha256sum() {
     return 1
   fi
 
-  if command -pv sha256sum &>/dev/null; then
+  if command -v sha256sum &>/dev/null; then
     sha256sum "${FILEPATH}" | cut -f1 -d' '
-  elif command -pv shasum &>/dev/null; then
+  elif command -v shasum &>/dev/null; then
     shasum -a 256 "${FILEPATH}" | cut -f1 -d' '
   fi
 }

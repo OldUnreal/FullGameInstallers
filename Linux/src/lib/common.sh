@@ -27,13 +27,13 @@ if [[ -z "${_arg_ui_mode:-}" ]] || [[ "${_arg_ui_mode:-}" == "auto" ]]; then
     { [[ -n "${SSH_CLIENT:-}" ]] || [[ -n "${SSH_TTY:-}" ]]; }; then
     # If we do not have a display, or we are in a SSH session, fallback to text mode
     _arg_ui_mode="none"
-  elif { [[ "${XDG_CURRENT_DESKTOP:-}" == "KDE" ]] && command -pv kdialog &>/dev/null && command -pv busctl &>/dev/null; }; then
+  elif { [[ "${XDG_CURRENT_DESKTOP:-}" == "KDE" ]] && command -v kdialog &>/dev/null && command -v busctl &>/dev/null; }; then
     # If we are on KDE, and kdialog + busctl is available, use kdialog
     _arg_ui_mode="kdialog"
-  elif command -pv zenity &>/dev/null; then
+  elif command -v zenity &>/dev/null; then
     # Use Zenity if available
     _arg_ui_mode="zenity"
-  elif command -pv kdialog &>/dev/null && command -pv busctl &>/dev/null; then
+  elif command -v kdialog &>/dev/null && command -v busctl &>/dev/null; then
     # If kdialog is available, but zenity is not (outside of KDE)
     _arg_ui_mode="kdialog"
   else
@@ -214,7 +214,7 @@ term::step::failed_with_error() {
 xdgdirs::get_user_dir() {
   local USER_DIR_NAME="${1}"
 
-  if command -pv xdg-user-dir &>/dev/null; then
+  if command -v xdg-user-dir &>/dev/null; then
     local USER_DIR_RETURNED
     USER_DIR_RETURNED=$(xdg-user-dir "${USER_DIR_NAME}")
 

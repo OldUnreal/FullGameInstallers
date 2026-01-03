@@ -1,9 +1,11 @@
 # shellcheck shell=bash
 
 step::download_files() {
-  for i in "${!DOWNLOADS_SOURCE_LIST[@]}"; do
-    local DOWNLOAD_URL_SETS="${DOWNLOADS_SOURCE_LIST[i]}"
-    local DOWNLOAD_FILENAME="${DOWNLOADS_FILENAME_LIST[i]}"
+  local DOWNLOAD_SOURCE_KEY
+
+  for DOWNLOAD_SOURCE_KEY in "${!DOWNLOADS_SOURCE_LIST[@]}"; do
+    local DOWNLOAD_URL_SETS="${DOWNLOADS_SOURCE_LIST[${DOWNLOAD_SOURCE_KEY}]}"
+    local DOWNLOAD_FILENAME="${DOWNLOADS_FILENAME_LIST[${DOWNLOAD_SOURCE_KEY}]}"
     local IS_DOWNLOAD_SKIPPED="no"
 
     DOWNLOAD_PATH="${_arg_destination%/}/Installer/${DOWNLOAD_FILENAME}"

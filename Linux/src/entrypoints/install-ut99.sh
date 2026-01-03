@@ -10,9 +10,10 @@
 # ARG_OPTIONAL_SINGLE([application-entry],[],[Action to take when installing the XDG Application Entry.],[prompt])
 # ARG_OPTIONAL_SINGLE([desktop-shortcut],[],[Action to take when installing a desktop shortcut.],[prompt])
 # ARG_TYPE_GROUP_SET([entryhandlingmode],[ACTION],[application-entry,desktop-shortcut],[install,prompt,skip])
+# ARG_OPTIONAL_BOOLEAN([unrealed],[e],[Install UnrealEd (Windows, umu-launcher recommended).],[])
 # ARG_OPTIONAL_BOOLEAN([keep-installer-files],[k],[Keep ISO and Patch files.],[])
 # ARG_HELP([Install Unreal Tournament: GOTY])
-# ARG_VERSION_AUTO([1.1],['OldUnreal <https://oldunreal.com>'])
+# ARG_VERSION_AUTO([1.2],['OldUnreal <https://oldunreal.com>'])
 # DEFINE_SCRIPT_DIR([_SCRIPT_DIR])
 # ARGBASH_GO()
 # needed because of Argbash --> m4_ignore([
@@ -46,7 +47,7 @@ entryhandlingmode() {
 }
 
 begins_with_short_option() {
-  local first_option all_short_options='dkhv'
+  local first_option all_short_options='dekhv'
   first_option="${1:0:1}"
   test "$all_short_options" = "${all_short_options/$first_option/}" && return 1 || return 0
 }
@@ -56,15 +57,17 @@ _arg_destination="${XDG_DATA_HOME:-${HOME}/.local/share}/OldUnreal/UnrealTournam
 _arg_ui_mode="auto"
 _arg_application_entry="prompt"
 _arg_desktop_shortcut="prompt"
+_arg_unrealed="off"
 _arg_keep_installer_files="off"
 
 print_help() {
   printf '%s\n' "Install Unreal Tournament: GOTY"
-  printf 'Usage: %s [-d|--destination <arg>] [--ui-mode <MODE>] [--application-entry <ACTION>] [--desktop-shortcut <ACTION>] [-k|--(no-)keep-installer-files] [-h|--help] [-v|--version]\n' "$0"
+  printf 'Usage: %s [-d|--destination <arg>] [--ui-mode <MODE>] [--application-entry <ACTION>] [--desktop-shortcut <ACTION>] [-e|--(no-)unrealed] [-k|--(no-)keep-installer-files] [-h|--help] [-v|--version]\n' "$0"
   printf '\t%s\n' "-d, --destination: Install directory. Will be created if it doesn't exist. (default: '${XDG_DATA_HOME:-${HOME}/.local/share}/OldUnreal/UnrealTournament')"
   printf '\t%s\n' "--ui-mode: UI library to use during install.. Can be one of: 'auto', 'kdialog', 'zenity' and 'none' (default: 'auto')"
   printf '\t%s\n' "--application-entry: Action to take when installing the XDG Application Entry.. Can be one of: 'install', 'prompt' and 'skip' (default: 'prompt')"
   printf '\t%s\n' "--desktop-shortcut: Action to take when installing a desktop shortcut.. Can be one of: 'install', 'prompt' and 'skip' (default: 'prompt')"
+  printf '\t%s\n' "-e, --unrealed, --no-unrealed: Install UnrealEd (Windows, umu-launcher recommended). (off by default)"
   printf '\t%s\n' "-k, --keep-installer-files, --no-keep-installer-files: Keep ISO and Patch files. (off by default)"
   printf '\t%s\n' "-h, --help: Prints help"
   printf '\t%s\n' "-v, --version: Prints version"
@@ -110,6 +113,17 @@ parse_commandline() {
     --desktop-shortcut=*)
       _arg_desktop_shortcut="$(entryhandlingmode "${_key##--desktop-shortcut=}" "desktop-shortcut")" || exit 1
       ;;
+    -e | --no-unrealed | --unrealed)
+      _arg_unrealed="on"
+      test "${1:0:5}" = "--no-" && _arg_unrealed="off"
+      ;;
+    -e*)
+      _arg_unrealed="on"
+      _next="${_key##-e}"
+      if test -n "$_next" -a "$_next" != "$_key"; then
+        { begins_with_short_option "$_next" && shift && set -- "-e" "-${_next}" "$@"; } || die "The short option '$_key' can't be decomposed to ${_key:0:2} and -${_key:2}, because ${_key:0:2} doesn't accept value and '-${_key:2:1}' doesn't correspond to a short option."
+      fi
+      ;;
     -k | --no-keep-installer-files | --keep-installer-files)
       _arg_keep_installer_files="on"
       test "${1:0:5}" = "--no-" && _arg_keep_installer_files="off"
@@ -130,11 +144,11 @@ parse_commandline() {
       exit 0
       ;;
     -v | --version)
-      printf '%s %s\n\n%s\n%s\n' "install-ut99.sh" "1.1" 'Install Unreal Tournament: GOTY' 'OldUnreal <https://oldunreal.com>'
+      printf '%s %s\n\n%s\n%s\n' "install-ut99.sh" "1.2" 'Install Unreal Tournament: GOTY' 'OldUnreal <https://oldunreal.com>'
       exit 0
       ;;
     -v*)
-      printf '%s %s\n\n%s\n%s\n' "install-ut99.sh" "1.1" 'Install Unreal Tournament: GOTY' 'OldUnreal <https://oldunreal.com>'
+      printf '%s %s\n\n%s\n%s\n' "install-ut99.sh" "1.2" 'Install Unreal Tournament: GOTY' 'OldUnreal <https://oldunreal.com>'
       exit 0
       ;;
     *)
@@ -165,6 +179,7 @@ installer::entrypoint() {
   local PRODUCT_NAME="Unreal Tournament: GOTY"
   local PRODUCT_SHORTNAME="UnrealTournament"
   local PRODUCT_KEYWORDS=("UT" "UT99" "Unreal Tournament 1999")
+  local PRODUCT_URLSCHEME="unreal"
   local MAIN_BINARY_NAME="ut-bin"
 
   # Import Library files
@@ -175,6 +190,18 @@ installer::entrypoint() {
 
   # Patch Metadata Download Step
   local PATCH_METADATA_URL="https://api.github.com/repos/OldUnreal/UnrealTournamentPatches/releases/latest"
+
+  # UT:GOTY patches are separated per architecture
+  step::read_patch_meta_from_github::metadata_filter() {
+    local PATCH_OS_NAME="${1:-}"
+    local PATCH_TARGET_ARCHITECTURE="${2:-}"
+
+    if [[ "${PATCH_OS_NAME}" == "windows" ]]; then
+      echo "-windows-x86.zip"
+    else
+      echo "-${PATCH_OS_NAME}-${PATCH_TARGET_ARCHITECTURE}"
+    fi
+  }
 
   # Download Steps
   # shellcheck disable=SC2034 # Used dynamically below
@@ -195,14 +222,14 @@ installer::entrypoint() {
   )
 
   # Build Download sources
-  local DOWNLOADS_SOURCE_LIST=(
-    "$(downloader::build_download_source_definition "TITLE_PRIMARY_DOWNLOAD_SOURCES" "TITLE_BACKUP_DOWNLOAD_SOURCES")"
-    "$(downloader::build_download_source_definition "BP4_DOWNLOAD_SOURCES")"
+  declare -A DOWNLOADS_SOURCE_LIST=(
+    [game]="$(downloader::build_download_source_definition "TITLE_PRIMARY_DOWNLOAD_SOURCES" "TITLE_BACKUP_DOWNLOAD_SOURCES")"
+    [bp4]="$(downloader::build_download_source_definition "BP4_DOWNLOAD_SOURCES")"
   )
 
-  local DOWNLOADS_FILENAME_LIST=(
-    "UT_GOTY_CD1.iso"
-    "utbonuspack4-zip.7z"
+  declare -A DOWNLOADS_FILENAME_LIST=(
+    [game]="UT_GOTY_CD1.iso"
+    [bp4]="utbonuspack4-zip.7z"
   )
 
   # Game Data Unpacking
@@ -253,14 +280,20 @@ installer::entrypoint() {
 
   # @include steps/read_patch_meta_from_github.sh
   step::read_patch_meta_from_github
+  if [[ "${_arg_unrealed}" == "on" ]]; then
+    step::read_patch_meta_from_github "windows" "UnrealEd"
+  fi
 
   # @include steps/download_files.sh
   step::download_files
 
   # @include steps/unarchive_generic.sh
-  step::unarchive_generic "Game Files" "${_arg_destination%/}/Installer/${DOWNLOADS_FILENAME_LIST[0]}" "${_arg_destination%/}" "UNPACK_IGNORE_PATTERNS"
-  step::unarchive_generic "Bonus Pack 4" "${_arg_destination%/}/Installer/${DOWNLOADS_FILENAME_LIST[1]}" "${_arg_destination%/}"
-  step::unarchive_generic "Latest Patch" "${_arg_destination%/}/Installer/${DOWNLOADS_FILENAME_LIST[2]}" "${_arg_destination%/}"
+  step::unarchive_generic "Game Files" "${_arg_destination%/}/Installer/${DOWNLOADS_FILENAME_LIST[game]}" "${_arg_destination%/}" "UNPACK_IGNORE_PATTERNS"
+  step::unarchive_generic "Bonus Pack 4" "${_arg_destination%/}/Installer/${DOWNLOADS_FILENAME_LIST[bp4]}" "${_arg_destination%/}"
+  if [[ "${_arg_unrealed}" == "on" ]]; then
+    step::unarchive_generic "Latest Patch (UnrealEd)" "${_arg_destination%/}/Installer/${DOWNLOADS_FILENAME_LIST[patch_windows]}" "${_arg_destination%/}"
+  fi
+  step::unarchive_generic "Latest Patch" "${_arg_destination%/}/Installer/${DOWNLOADS_FILENAME_LIST[patch_linux]}" "${_arg_destination%/}"
 
   # @include steps/unpack_uz_maps.sh
   step::unpack_uz_maps
@@ -271,11 +304,17 @@ installer::entrypoint() {
   # @include steps/remove_extra_i18n_files.sh
   step::remove_extra_i18n_files
 
+  # @include steps/create_unrealed_launcher.sh
+  if [[ "${_arg_unrealed}" == "on" ]]; then
+    step::create_unrealed_launcher
+  fi
+
   # @include steps/xdg_desktop_entry.sh
   step::xdg_desktop_entry \
     "Application Menu Entry" \
     "Do you want to create an application menu entry?" \
     "${XDG_DATA_HOME:-${HOME}/.local/share}/applications/OldUnreal-${PRODUCT_SHORTNAME}.desktop" \
+    "${XDG_DATA_HOME:-${HOME}/.local/share}/applications/OldUnreal-${PRODUCT_SHORTNAME}-UnrealEd.desktop" \
     "${_arg_application_entry}"
 
   step::xdg_desktop_entry::xdg_dir \
@@ -283,6 +322,7 @@ installer::entrypoint() {
     "Do you want to create a shortcut on your desktop?" \
     "DESKTOP" \
     "${PRODUCT_SHORTNAME}.desktop" \
+    "UnrealEd-${PRODUCT_SHORTNAME}.desktop" \
     "${_arg_desktop_shortcut}"
 
   # @include steps/notify_install_finished.sh
