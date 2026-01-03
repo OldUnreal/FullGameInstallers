@@ -1498,6 +1498,29 @@ installer::entrypoint() {
       MISSING_DEPS_BREW+=("jq")
     fi
 
+    if [[ "${PRODUCT_SHORTNAME}" == "UT2004" ]]; then
+      # Check unshield
+      term::step::progress "unshield"
+      if ! command -v "unshield" &>/dev/null; then
+        # Can it be downloaded?
+        case "${ARCHITECTURE_SUFFIX}" in
+        amd64 | arm64)
+          # shellcheck disable=SC2034 # May not be used in all installers
+          DOWNLOADS_SOURCE_LIST[unshield]="https://raw.githubusercontent.com/OldUnreal/FullGameInstallers/master/Linux/deps/unshield-${ARCHITECTURE_SUFFIX}||"
+          DOWNLOADS_FILENAME_LIST[unshield]="unshield"
+          ;;
+        *)
+          MISSING_DEPS+=("unshield")
+          MISSING_DEPS_RHEL+=("unshield")
+          MISSING_DEPS_DEB+=("unshield")
+          MISSING_DEPS_ARCH+=("unshield")
+          MISSING_DEPS_OPENSUSE+=("unshield")
+          MISSING_DEPS_BREW+=("unshield")
+          ;;
+        esac
+      fi
+    fi
+
     if [[ "${UI_MODE_DEPS_MET}" == "no" ]]; then
       _arg_ui_mode="none"
     fi

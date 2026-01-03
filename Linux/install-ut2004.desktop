@@ -1,0 +1,15 @@
+[Desktop Entry]
+Comment=
+Exec=sh -c 'set -euo pipefail; URL="https://raw.githubusercontent.com/OldUnreal/FullGameInstallers/master/Linux/install-ut2004.sh"; { if command -v curl &>/dev/null; then curl -LSs --compressed --fail "${URL}"; elif command -v wget &>/dev/null; then wget -q "${URL}" -O -; elif command -v wget2 &>/dev/null; then wget2 -q "${URL}" -O -; fi; } | bash -s -- --application-entry=install'
+GenericName=
+MimeType=
+Name=Install Unreal Tournament 2004
+Path=
+StartupNotify=false
+Terminal=true
+TerminalOptions=
+Type=Application
+X-DBUS-ServiceName=
+X-DBUS-StartupType=
+X-KDE-SubstituteUID=false
+X-KDE-Username=
