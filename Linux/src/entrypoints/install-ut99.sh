@@ -208,6 +208,7 @@ installer::entrypoint() {
   local TITLE_PRIMARY_DOWNLOAD_SOURCES=(
     "https://files.oldunreal.net/UT_GOTY_CD1.ISO|649633792|e184984ca88f001c5ddd52035d76cd64e266e26c74975161b5ed72366c74704f"
     "https://files2.oldunreal.net/UT_GOTY_CD1.ISO|649633792|e184984ca88f001c5ddd52035d76cd64e266e26c74975161b5ed72366c74704f"
+    "https://files3.oldunreal.net/UT_GOTY_CD1.ISO|649633792|e184984ca88f001c5ddd52035d76cd64e266e26c74975161b5ed72366c74704f"
   )
 
   # shellcheck disable=SC2034 # Used dynamically below
@@ -219,6 +220,7 @@ installer::entrypoint() {
   local BP4_DOWNLOAD_SOURCES=(
     "https://files.oldunreal.net/utbonuspack4-zip.7z|11268844|5b7a1080724a122a596c226c50d4dc7c2d7636ceaf067e9c12112014a170ffba"
     "https://files2.oldunreal.net/utbonuspack4-zip.7z|11268844|5b7a1080724a122a596c226c50d4dc7c2d7636ceaf067e9c12112014a170ffba"
+    "https://files3.oldunreal.net/utbonuspack4-zip.7z|11268844|5b7a1080724a122a596c226c50d4dc7c2d7636ceaf067e9c12112014a170ffba"
   )
 
   # Build Download sources

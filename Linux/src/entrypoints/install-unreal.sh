@@ -194,6 +194,7 @@ installer::entrypoint() {
   local TITLE_PRIMARY_DOWNLOAD_SOURCES=(
     "https://files.oldunreal.net/UNREAL_GOLD.ISO|676734976|7e360d0cc9e5533f38859819fd3cbfea7c475ecd428f9f433b5f8e1d5742cbca"
     "https://files2.oldunreal.net/UNREAL_GOLD.ISO|676734976|7e360d0cc9e5533f38859819fd3cbfea7c475ecd428f9f433b5f8e1d5742cbca"
+    "https://files3.oldunreal.net/UNREAL_GOLD.ISO|676734976|7e360d0cc9e5533f38859819fd3cbfea7c475ecd428f9f433b5f8e1d5742cbca"
   )
 
   # shellcheck disable=SC2034 # Used dynamically below

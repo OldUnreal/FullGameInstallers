@@ -96,47 +96,34 @@ downloader::fetch_json() {
 }
 
 downloader::build_download_source_definition() {
-  local PRIMARY_SOURCES_VAR_NAME="${1:-}"
-
-  if [[ -z "${PRIMARY_SOURCES_VAR_NAME}" ]]; then
-    return 1
-  fi
-
-  local PRIMARY_SOURCES=()
-  local PRIMARY_SOURCES_VAR_REF="${PRIMARY_SOURCES_VAR_NAME}[@]"
-  PRIMARY_SOURCES=("${!PRIMARY_SOURCES_VAR_REF}")
-
-  local BACKUP_SOURCES=()
-  local BACKUP_SOURCES_VAR_NAME="${2:-}"
-
-  if [[ -n "${BACKUP_SOURCES_VAR_NAME}" ]]; then
-    local BACKUP_SOURCES_VAR_REF="${BACKUP_SOURCES_VAR_NAME}[@]"
-    BACKUP_SOURCES=("${!BACKUP_SOURCES_VAR_REF}")
-  fi
-
   local SEPARATOR=";;"
   local SOURCE_DEF=""
 
-  local NUM_PRIMARY="${#PRIMARY_SOURCES[@]}"
-  local START_INDEX=$((RANDOM % NUM_PRIMARY))
+  if [[ $# -eq 0 ]]; then
+    return 1
+  fi
 
-  local i CURR_INDEX
-  for ((i = 0; i < NUM_PRIMARY; i++)); do
-    CURR_INDEX=$(((START_INDEX + i) % NUM_PRIMARY))
+  while [[ $# -gt 0 ]]; do
+    local SOURCES_GROUP_VAR_NAME="${1}"
+    shift
 
-    if [[ -n "${SOURCE_DEF}" ]]; then
-      SOURCE_DEF="${SOURCE_DEF}${SEPARATOR}"
+    if [[ -z "${SOURCES_GROUP_VAR_NAME}" ]]; then
+      return 1
     fi
 
-    SOURCE_DEF="${SOURCE_DEF}${PRIMARY_SOURCES[CURR_INDEX]}"
-  done
+    local SOURCES_GROUP=()
+    local SOURCES_GROUP_VAR_REF="${SOURCES_GROUP_VAR_NAME}[@]"
+    SOURCES_GROUP=("${!SOURCES_GROUP_VAR_REF}")
 
-  for i in "${BACKUP_SOURCES[@]}"; do
-    if [[ -n "${SOURCE_DEF}" ]]; then
-      SOURCE_DEF="${SOURCE_DEF}${SEPARATOR}"
+    if [[ "${#SOURCES_GROUP[@]}" -gt 0 ]]; then
+      while IFS= read -r SHUFFLED_ITEM; do
+        if [[ -n "${SOURCE_DEF}" ]]; then
+          SOURCE_DEF="${SOURCE_DEF}${SEPARATOR}"
+        fi
+
+        SOURCE_DEF="${SOURCE_DEF}${SHUFFLED_ITEM}"
+      done < <(shuf -e "${SOURCES_GROUP[@]}")
     fi
-
-    SOURCE_DEF="${SOURCE_DEF}${i}"
   done
 
   echo "${SOURCE_DEF}"
