@@ -1720,10 +1720,22 @@ You may read the Terms of Service at this URL:
       }
     fi
 
+    local IS_GITHUB_RELEASES_ARRAY="no"
+    { IS_GITHUB_RELEASES_ARRAY=$(echo "${PATCH_METADATA_JSON}" | jq -r 'if (. | type) == "array" then "yes" else "no" end'); } || {
+      term::step::failed_with_error "Couldn't determine if we received a single release, or an array of releases. Installation aborted."
+      return 1
+    }
+
+    local JQ_FILTER=".assets[]"
+    if [[ "${IS_GITHUB_RELEASES_ARRAY}" == "yes" ]]; then
+      JQ_FILTER=".[0].assets[]"
+    fi
+
     local METADATA_FILTER
     METADATA_FILTER=$(step::read_patch_meta_from_github::metadata_filter "${PATCH_FOR_OS}" "${ARCHITECTURE_SUFFIX}")
     local JQ_FILTER
-    { JQ_FILTER='.assets[] | select(.browser_download_url | ascii_downcase | contains("'"${METADATA_FILTER}"'"))'; } ||
+
+    { JQ_FILTER+=' | select(.browser_download_url | ascii_downcase | contains("'"${METADATA_FILTER}"'"))'; } ||
       {
         term::step::failed_with_error "Implementation error, step::read_patch_meta_from_github::metadata_filter runtime error."
         return 1
