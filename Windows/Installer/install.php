@@ -112,6 +112,7 @@ if (!$cd_drive) {
 	$hashes = array();
 	foreach ($config['iso'] as $iso_url => $iso_data) {
 		list($iso_size, $iso_hash) = explode('_', $iso_data, 2);
+		$iso_size = floatval($iso_size); // Don't use intval() to avoid overflow on 32-bit PHP.
 		$iso_name = basename($iso_url);
 		if (file_exists($iso_name) && size_same(filesize($iso_name), $iso_size)) {
 			if (!isset($hashes[$iso_name])) {
@@ -128,6 +129,7 @@ if (!$cd_drive) {
 		$tries = count($config['iso']);
 		foreach ($config['iso'] as $iso_url => $iso_data) {
 			list($iso_size, $iso_hash) = explode('_', $iso_data, 2);
+			$iso_size = floatval($iso_size); // Don't use intval() to avoid overflow on 32-bit PHP.
 			$try++;
 			if ($iso_name && file_exists($iso_name)) unlink($iso_name);
 			log_('Try obtain game ISO from '.$iso_url);
@@ -399,7 +401,7 @@ function json_error($json, $error) {
 
 function size_same($filesize, $expected_size) {
 	// Hack for compare file sizes bigger then 2 GB on 32-bit PHP.
-	return ($filesize & 0xFFFFFFFF) == ($expected_size & 0xFFFFFFFF);
+	return sprintf("%u", $filesize) == sprintf("%u", $expected_size);
 }
 
 function download($url, $expected_size, $die = true) {
@@ -435,7 +437,7 @@ function download($url, $expected_size, $die = true) {
 }
 
 function human_size($filesize) {
-	return number_format($filesize, 0, '', ' ');
+	return number_format(sprintf("%u", $filesize), 0, '', ' ');
 }
 
 function log_($line) {
