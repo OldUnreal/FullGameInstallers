@@ -14,7 +14,7 @@ $setup = array(
 			'https://files.oldunreal.net/UNREAL_GOLD.ISO' => '676734976_a2dc0525242fce78c01e95b71914a3b4',
 			'https://archive.org/download/totallyunreal/UNREAL_GOLD.ISO' => '676734976_a2dc0525242fce78c01e95b71914a3b4',
 		),
-		'patch_fallback' => 'https://api.github.com/repos/OldUnreal/Unreal-testing/releases/tags/v227k_12',
+		'patch_fallback' => 'https://api.github.com/repos/OldUnreal/Unreal-testing/releases/tags/v227k_13',
 		'patch' => 'https://api.github.com/repos/OldUnreal/Unreal-testing/releases/latest',
 		'exe' => 'Unreal.exe',
 	),
