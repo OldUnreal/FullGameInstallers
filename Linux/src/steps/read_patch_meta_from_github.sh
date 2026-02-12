@@ -35,7 +35,7 @@ step::read_patch_meta_from_github() {
       local PATCH_TARGET_ARCHITECTURE="${2:-}"
 
       if [[ "${PATCH_OS_NAME}" == "windows" ]]; then
-        echo "-${PATCH_OS_NAME}.zip"
+        echo "-${PATCH_OS_NAME}(-.+)?.zip"
         return 0
       fi
 
@@ -58,7 +58,7 @@ step::read_patch_meta_from_github() {
   METADATA_FILTER=$(step::read_patch_meta_from_github::metadata_filter "${PATCH_FOR_OS}" "${ARCHITECTURE_SUFFIX}")
   local JQ_FILTER
 
-  { JQ_FILTER+=' | select(.browser_download_url | ascii_downcase | contains("'"${METADATA_FILTER}"'"))'; } ||
+  { JQ_FILTER+=' | select(.browser_download_url | ascii_downcase | test("'"${METADATA_FILTER}"'"))'; } ||
     {
       term::step::failed_with_error "Implementation error, step::read_patch_meta_from_github::metadata_filter runtime error."
       return 1
