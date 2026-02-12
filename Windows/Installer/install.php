@@ -1,6 +1,7 @@
 <?php
 date_default_timezone_set('UTC');
 register_shutdown_function('on_exit');
+chdir(dirname(__FILE__));
 log_('Installer v1.6 started.'.PHP_EOL);
 title('Loading...');
 if (file_exists('installed')) unlink('installed');
