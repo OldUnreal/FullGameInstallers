@@ -12,8 +12,7 @@
 !define ISO_SIZE_BYTES 2995322880
 !define ISO_SIZE_BYTES2 2995322880
 !define ISO_SIZE_BYTES3 3751510016
-#!define PATCH_URL "https://api.github.com/repos/OldUnreal/UT2004Patches/releases/latest"
-!define PATCH_URL "https://api.github.com/repos/OldUnreal/UnrealTournamentPatches/releases/latest" #tmp use ut99 for tests
+!define PATCH_URL "https://api.github.com/repos/OldUnreal/UT2004Patches/releases/latest"
 !define NOTICE_FILE "NOTICE2004.txt"
 !define ADD_SIZE_KB 15728640
 !define PROTOCOL "ut2004"

@@ -32,7 +32,6 @@ $setup = array(
 			'https://archive.org/download/ut-2004/UT2004.ISO' => 3751510016,
 		),
 		'patch' => 'https://api.github.com/repos/OldUnreal/UT2004Patches/releases/latest',
-		'patch' => 'https://api.github.com/repos/OldUnreal/UnrealTournamentPatches/releases/latest', // dbg
 		'exe' => 'UT2004.exe',
 		'deny_from_cd' => true,
 	),
