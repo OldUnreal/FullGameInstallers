@@ -1,5 +1,0 @@
-#!/bin/bash
-
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-COMMAND="$SCRIPT_DIR/../Resources/Installer.command"
-open -a Terminal "$COMMAND"
