@@ -4,6 +4,10 @@ The Epic Games Terms of Service apply to the use and distribution of the game.
 Please read the terms of service carefully:
 https://legal.epicgames.com/en-US/epicgames/tos
 
+This software is provided for personal, non-commercial use only and is distributed free of charge. All game content, trademarks, and intellectual property remain the property of their respective owners, including Epic Games, Inc.
+
+When you distribute game patches or installers, they must be only for personal use at no charge under a license that contains an Epic-approved legal notice.
+
 This game requires 1.4 GB of disk space for setup.
 
 Game data and patches will be downloaded from the Internet.
