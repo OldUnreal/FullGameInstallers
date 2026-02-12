@@ -1,7 +1,7 @@
 <?php
 date_default_timezone_set('UTC');
 register_shutdown_function('on_exit');
-log_('Installer v1.5 started.'.PHP_EOL);
+log_('Installer v1.6 started.'.PHP_EOL);
 title('Loading...');
 if (file_exists('installed')) unlink('installed');
 if (file_exists('failed')) unlink('failed');
@@ -10,8 +10,8 @@ touch('closed');
 $setup = array(
 	'ugold' => array(
 		'iso' => array(
-			'https://files.oldunreal.net/UNREAL_GOLD.ISO' => 676734976,
-			'https://archive.org/download/totallyunreal/UNREAL_GOLD.ISO' => 676734976,
+			'https://files.oldunreal.net/UNREAL_GOLD.ISO' => '676734976_a2dc0525242fce78c01e95b71914a3b4',
+			'https://archive.org/download/totallyunreal/UNREAL_GOLD.ISO' => '676734976_a2dc0525242fce78c01e95b71914a3b4',
 		),
 		'patch_fallback' => 'https://api.github.com/repos/OldUnreal/Unreal-testing/releases/tags/v227k_12',
 		'patch' => 'https://api.github.com/repos/OldUnreal/Unreal-testing/releases/latest',
@@ -19,17 +19,17 @@ $setup = array(
 	),
 	'ut99' => array(
 		'iso' => array(
-			'https://files.oldunreal.net/UT_GOTY_CD1.ISO' => 649633792,
-			'https://archive.org/download/ut-goty/UT_GOTY_CD1.iso' => 649633792,
+			'https://files.oldunreal.net/UT_GOTY_CD1.ISO' => '649633792_e5127537f44086f5ed36a9d29f992c00',
+			'https://archive.org/download/ut-goty/UT_GOTY_CD1.iso' => '649633792_e5127537f44086f5ed36a9d29f992c00',
 		),
 		'patch' => 'https://api.github.com/repos/OldUnreal/UnrealTournamentPatches/releases/latest',
 		'exe' => 'UnrealTournament.exe',
 	),
 	'ut2004' => array(
 		'iso' => array(
-			'https://files.oldunreal.net/UT2004.ISO' => 2995322880,
-			'https://files2.oldunreal.net/UT2004.ISO' => 2995322880,
-			'https://archive.org/download/ut-2004/UT2004.ISO' => 3751510016,
+			'https://files.oldunreal.net/UT2004.ISO' => '2995322880_4ad34b16d757e0752809eb9bf5fb1fba',
+			'https://files2.oldunreal.net/UT2004.ISO' => '2995322880_4ad34b16d757e0752809eb9bf5fb1fba',
+			'https://archive.org/download/ut-2004/UT2004.ISO' => '3751510016_7841d8750e3f51aeac7bbb0448667670',
 		),
 		'patch' => 'https://api.github.com/repos/OldUnreal/UT2004Patches/releases/latest',
 		'exe' => 'UT2004.exe',
@@ -108,17 +108,25 @@ if (!$cd_drive) {
 	title('Downloading game ISO...');
 
 	$iso_name = false;
-	foreach ($config['iso'] as $iso_url => $iso_size) {
+	$hashes = array();
+	foreach ($config['iso'] as $iso_url => $iso_data) {
+		list($iso_size, $iso_hash) = explode('_', $iso_data, 2);
 		$iso_name = basename($iso_url);
 		if (file_exists($iso_name) && size_same(filesize($iso_name), $iso_size)) {
-			break;
+			if (!isset($hashes[$iso_name])) {
+				log_('Calculate hash for '.$iso_name);
+				$hashes[$iso_name] = md5_file($iso_name);
+				log_('Hash: '.$hashes[$iso_name]);
+			}
+			if ($hashes[$iso_name] == $iso_hash) break;
 		}
 		$iso_name = false;
 	}
 	if (!$iso_name) {
 		$try = 0;
 		$tries = count($config['iso']);
-		foreach ($config['iso'] as $iso_url => $iso_size) {
+		foreach ($config['iso'] as $iso_url => $iso_data) {
+			list($iso_size, $iso_hash) = explode('_', $iso_data, 2);
 			$try++;
 			if ($iso_name && file_exists($iso_name)) unlink($iso_name);
 			log_('Try obtain game ISO from '.$iso_url);
@@ -131,7 +139,12 @@ if (!$cd_drive) {
 				end_('Failed get game ISO from '.$iso_url);
 			}
 
-			if (size_same(filesize($iso_name), $iso_size)) break;
+			if (size_same(filesize($iso_name), $iso_size)) {
+				log_('Calculate hash for '.$iso_name);
+				$file_hash = md5_file($iso_name);
+				log_('Hash: '.$file_hash);
+				if ($file_hash == $iso_hash) break;
+			}
 		}
 	}
 }
@@ -392,7 +405,7 @@ function download($url, $expected_size, $die = true) {
 	$result_file = basename($url);
 	log_('Start download '.$result_file.' from '.$url);
 
-	$insecure = date('Y') < 2025 ? '--check-certificate=false ' : ''; // Wrong date -> TLS will fail (cert not yet issued) -> use insecure connection.
+	$insecure = date('Y') < 2026 ? '--check-certificate=false ' : ''; // Wrong date -> TLS will fail (cert not yet issued) -> use insecure connection.
 	if ($insecure) log_('Wrong current date on computer detected ('.date('Y-m-d').'). Use insecure connection.');
 	$result = run('tools\aria2c --enable-color=false --allow-overwrite=true --auto-file-renaming=false -x5 --ca-certificate=tools\ca-certificates.crt -o '.
 		escapeshellarg($result_file).' '.$insecure.escapeshellarg($url));
