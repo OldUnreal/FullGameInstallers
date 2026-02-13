@@ -2,7 +2,7 @@
 date_default_timezone_set('UTC');
 register_shutdown_function('on_exit');
 chdir(dirname(__FILE__));
-log_('Installer v1.6 started.'.PHP_EOL);
+log_('Installer v1.7 started.'.PHP_EOL);
 title('Loading...');
 if (file_exists('installed')) unlink('installed');
 if (file_exists('failed')) unlink('failed');
@@ -29,7 +29,6 @@ $setup = array(
 	'ut2004' => array(
 		'iso' => array(
 			'https://files.oldunreal.net/UT2004.ISO' => '2995322880_4ad34b16d757e0752809eb9bf5fb1fba',
-			'https://files2.oldunreal.net/UT2004.ISO' => '2995322880_4ad34b16d757e0752809eb9bf5fb1fba',
 			'https://archive.org/download/ut-2004/UT2004.ISO' => '3751510016_7841d8750e3f51aeac7bbb0448667670',
 		),
 		'patch' => 'https://api.github.com/repos/OldUnreal/UT2004Patches/releases/latest',
@@ -125,6 +124,21 @@ if (!$cd_drive) {
 		$iso_name = false;
 	}
 	if (!$iso_name) {
+		reset($config['iso']);
+		$files_ou = key($config['iso']);
+		if (strpos($files_ou, 'files.oldunreal.net')) {
+			$hash_ou = $config['iso'][$files_ou];
+			unset($config['iso'][$files_ou]);
+			$servers = array();
+			$servers[] = $files_ou;
+			for ($i = 2; $i <= 3; $i++) {
+				$servers[] = strtr($files_ou, array('files.oldunreal.net' => 'files'.$i.'.oldunreal.net'));
+			}
+			shuffle($servers);
+			$servers = array_fill_keys($servers, $hash_ou);
+			$config['iso'] = array_merge($servers, $config['iso']);
+		}
+
 		$try = 0;
 		$tries = count($config['iso']);
 		foreach ($config['iso'] as $iso_url => $iso_data) {
