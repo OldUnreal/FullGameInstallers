@@ -2,7 +2,7 @@
 date_default_timezone_set('UTC');
 register_shutdown_function('on_exit');
 chdir(dirname(__FILE__));
-log_('Installer v1.7 started.'.PHP_EOL);
+log_('Installer v1.8 started.'.PHP_EOL);
 title('Loading...');
 if (file_exists('installed')) unlink('installed');
 if (file_exists('failed')) unlink('failed');

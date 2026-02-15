@@ -87,21 +87,97 @@ SectionEnd
 
 # Define the installer's section
 Section
-	# Specify the additional space needed (in KB)
-	AddSize "${ADD_SIZE_KB}"	; Add 1.3GB to the required space
-
 	# Create the installation directory
 	SetOutPath "$INSTDIR"
-	
-	!ifdef DENY_FROM_CD
-		StrCpy $FromCD ""
-	!endif
 
 	# Extract the entire "Installer" folder to the installation directory
 	!ifdef BP4
 		File /r "Installer"
 	!else
 		File /r /x "utbonuspack4-zip.7z" "Installer"
+	!endif
+SectionEnd
+
+;--------------------------------
+; Visual C++ Redistributable x86
+;--------------------------------
+Section "Visual C++ Redistributable (x86)"
+	; Check if x86 runtime is already installed
+	; Returns 1 if installed
+	ReadRegDWORD $0 HKLM "SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x86" "Installed"
+	
+	; If $0 == 1, jump to Skip label. Otherwise continue.
+	IntCmp $0 1 VCRedist86_Skip 0 0
+
+	DetailPrint "Installing Visual C++ Redistributable (x86)..."
+	
+	; Run silent, no restart
+	ExecWait '"$INSTDIR\Installer\redist\vc_redist.x86.exe" /install /passive /norestart' $0
+	
+	; Check if reboot is required (Exit Code 3010)
+	IntCmp $0 3010 VCRedist86_Reboot 0 0
+	Goto VCRedist86_Done
+
+VCRedist86_Reboot:
+	SetRebootFlag true
+	Goto VCRedist86_Done
+
+VCRedist86_Skip:
+	DetailPrint "VCRedist (x86) is already installed."
+
+VCRedist86_Done:
+SectionEnd
+
+;--------------------------------
+; Visual C++ Redistributable x64
+;--------------------------------
+Section "Visual C++ Redistributable (x64)" 
+	; Check if we are on a 64-bit OS first using standard NSIS instruction
+	; If simple string is empty, we are likely on 32-bit
+	; (LogicLib usually handles this better, but here is a simple workaround)
+	; Assuming modern Game installer running on x64 OS:
+
+	; Check if x64 runtime is already installed
+	ReadRegDWORD $0 HKLM "SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64" "Installed"
+	
+	; If $0 == 1, jump to Skip
+	IntCmp $0 1 VCRedist64_Skip 0 0
+
+	DetailPrint "Installing Visual C++ Redistributable (x64)..."
+	
+	ExecWait '"$INSTDIR\Installer\redist\vc_redist.x64.exe" /install /passive /norestart' $0
+	
+	; Check for 3010 (Reboot required)
+	IntCmp $0 3010 VCRedist64_Reboot 0 0
+	Goto VCRedist64_Done
+
+VCRedist64_Reboot:
+	SetRebootFlag true
+	Goto VCRedist64_Done
+
+VCRedist64_Skip:
+	DetailPrint "VCRedist (x64) is already installed."
+
+VCRedist64_Done:
+SectionEnd
+
+;--------------------------------
+; DirectX (Offline)
+;--------------------------------
+Section "DirectX Runtimes" 
+	DetailPrint "Updating DirectX components..."
+	
+	; Run DXSETUP silent
+	ExecWait '"$INSTDIR\Installer\redist\dxwebsetup.exe" /q'
+SectionEnd
+
+# Define the installer's section
+Section
+	# Specify the additional space needed (in KB)
+	AddSize "${ADD_SIZE_KB}"	; Add 1.3GB to the required space
+	
+	!ifdef DENY_FROM_CD
+		StrCpy $FromCD ""
 	!endif
 	
 	SetDetailsPrint none

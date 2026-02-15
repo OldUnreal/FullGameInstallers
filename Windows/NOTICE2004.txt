@@ -46,5 +46,17 @@ This self-extracting archive contains the following software:
    - You may use, distribute, and modify this software under the terms of the MIT License.  
    - The source code for Unshield is hosted on GitHub at https://github.com/twogood/unshield
    - A copy of the MIT License is included in this archive.  
+   
+6. Microsoft DirectX End-User Runtime
+  This archive includes `dxwebsetup.exe` (Web Installer), which is property of Microsoft Corporation.
+  - This tool installs DirectX runtime libraries required for multimedia applications.
+  - By installing this software, you agree to the terms of the Microsoft End-User License Agreement (EULA) for DirectX.
+  - For more information, please visit https://www.microsoft.com/en-us/download/details.aspx?id=35
+
+7. Microsoft Visual C++ Redistributable
+  This archive includes `vc_redist.x86.exe` and `vc_redist.x64.exe`, which are property of Microsoft Corporation.
+  - These components install runtime libraries required to run applications developed with Microsoft Visual Studio.
+  - Use of these components is subject to the Microsoft Software License Terms for the Visual C++ Redistributable.
+  - For more information and license terms, please visit https://visualstudio.microsoft.com/license-terms/vs2022-cruntime/
 
 By including these tools, we comply with the requirements of their respective licenses and provide access to their source codes for transparency and legal compliance.
