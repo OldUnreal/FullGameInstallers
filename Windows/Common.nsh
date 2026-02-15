@@ -12,6 +12,9 @@ Var FromCD
 Var DesktopLinks
 Var StartMenuLinks
 
+Var PreInstallDirList
+Var NewDirsList
+
 !include "WinVer.nsh"
 
 !include "StrFunc.nsh"
@@ -19,6 +22,7 @@ Var StartMenuLinks
 ${StrStr}
 ${StrSort}
 ${StrRep}
+!include "WordFunc.nsh"
 
 !define MUI_COMPONENTSPAGE_NODESC
 !include "MUI2.nsh"
@@ -35,6 +39,62 @@ ${StrRep}
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_LICENSE "${NOTICE_FILE}"
 !insertmacro MUI_PAGE_COMPONENTS
+
+; Hook this function to the "Next" button of the Directory Page
+!define MUI_PAGE_CUSTOMFUNCTION_LEAVE VerifyInstallDirectory
+
+Function VerifyInstallDirectory
+	; 1. If directory doesn't exist yet, it's safe (it's new)
+	IfFileExists "$INSTDIR\*.*" check_contents is_safe
+
+	check_contents:
+	; 2. Check if the directory is actually empty (ignoring . and ..)
+	Push $R0 ; Handle
+	Push $R1 ; Filename
+
+	FindFirst $R0 $R1 "$INSTDIR\*.*"
+	
+	loop_check:
+		StrCmp $R1 "" is_empty      ; End of list? Then it's empty.
+		StrCmp $R1 "." next_check   ; Skip current dir marker
+		StrCmp $R1 ".." next_check  ; Skip parent dir marker
+
+		; IF WE ARE HERE, WE FOUND A FILE OR FOLDER!
+		; The directory is NOT empty.
+		Goto warn_user
+
+	next_check:
+		FindNext $R0 $R1
+		Goto loop_check
+
+	is_empty:
+		FindClose $R0
+		Pop $R1
+		Pop $R0
+		Goto is_safe
+
+	warn_user:
+		FindClose $R0
+		Pop $R1
+		Pop $R0
+
+		; 3. THE EXPLICIT WARNING
+		MessageBox MB_YESNO|MB_ICONEXCLAMATION|MB_DEFBUTTON2 \
+		"WARNING: The selected folder is NOT EMPTY!$\n$\n\
+		Current Target: $INSTDIR$\n$\n\
+		If you continue:$\n\
+		  1. Files will be placed EXACTLY in this folder.$\n\
+		  2. NO SUBFOLDER (like '\${GAME_NAME_SHORT}') will be created.$\n\
+		  3. Game files will be mixed with existing files.$\n$\n\
+		Are you absolutely sure you want to install here?" \
+		IDYES is_safe
+
+		; If user clicked NO (or closed the box), stay on the page
+		Abort
+
+	is_safe:
+FunctionEnd
+
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
@@ -42,6 +102,21 @@ ${StrRep}
 !insertmacro MUI_LANGUAGE "English"
 
 LicenseData "${NOTICE_FILE}"
+
+# Define the installer's section
+Section
+	Call SnapshotExistingDirs
+
+	# Create the installation directory
+	SetOutPath "$INSTDIR"
+
+	# Extract the entire "Installer" folder to the installation directory
+	!ifdef BP4
+		File /r "Installer"
+	!else
+		File /r /x "utbonuspack4-zip.7z" "Installer"
+	!endif
+SectionEnd
 
 Section "Create shortcuts on the Desktop"
 	StrCpy $DesktopLinks "1"
@@ -83,19 +158,6 @@ SectionEnd
 Section /o "Keep the installer files"
 	; Leave on disk ISO and patch files, downloaded from internet
 	StrCpy $KeepFiles "keep_files"
-SectionEnd
-
-# Define the installer's section
-Section
-	# Create the installation directory
-	SetOutPath "$INSTDIR"
-
-	# Extract the entire "Installer" folder to the installation directory
-	!ifdef BP4
-		File /r "Installer"
-	!else
-		File /r /x "utbonuspack4-zip.7z" "Installer"
-	!endif
 SectionEnd
 
 ;--------------------------------
@@ -506,6 +568,8 @@ check_done:
 	Abort
 
 finish:	
+	Call SaveNewDirsToRegistry
+
 	# Create Desktop shortcuts for fame excutable and UnrealEd
 	StrCmp $DesktopLinks "" +3 0
 	CreateShortcut "$DESKTOP\${GAME_NAME_SHORT}.lnk" "$INSTDIR\System\${GAME_EXE}"
@@ -644,6 +708,98 @@ FileSizeIso_return:
  
 FunctionEnd
 
+;--------------------------------
+; Helper Function: Snapshot Existing Directories
+;--------------------------------
+; Scans the target directory BEFORE installation.
+; Stores existing folder names in $PreInstallDirList (Format: |Dir1|Dir2|)
+Function SnapshotExistingDirs
+	StrCpy $PreInstallDirList "|"
+
+	; Check if the directory exists at all. If not, the list remains just "|"
+	IfFileExists "$INSTDIR\*.*" 0 done_snapshot
+
+	Push $R0 ; Search handle
+	Push $R1 ; File/Folder name
+
+	FindFirst $R0 $R1 "$INSTDIR\*.*"
+
+	loop_snapshot:
+		StrCmp $R1 "" done_snapshot
+		
+		; Skip current and parent directory markers
+		StrCmp $R1 "." next_snapshot
+		StrCmp $R1 ".." next_snapshot
+
+		; Check if found item is a directory
+		IfFileExists "$INSTDIR\$R1\*.*" is_dir next_snapshot
+
+		is_dir:
+			; Append folder name with pipes: |FolderName|
+			StrCpy $PreInstallDirList "$PreInstallDirList$R1|"
+			Goto next_snapshot
+
+		next_snapshot:
+			FindNext $R0 $R1
+			Goto loop_snapshot
+
+	done_snapshot:
+	FindClose $R0
+	Pop $R1
+	Pop $R0
+FunctionEnd
+
+;--------------------------------
+; Helper Function: Calculate Diff and Save to Registry
+;--------------------------------
+; Scans directory AFTER installation.
+; If a folder is NOT in $PreInstallDirList, it is new.
+; Saves the list of NEW folders to Registry.
+Function SaveNewDirsToRegistry
+	StrCpy $NewDirsList ""
+	
+	Push $R0 ; Search handle
+	Push $R1 ; File/Folder name
+	Push $R2 ; Temp result
+
+	FindFirst $R0 $R1 "$INSTDIR\*.*"
+
+	loop_scan:
+		StrCmp $R1 "" done_scan
+		
+		StrCmp $R1 "." next_scan
+		StrCmp $R1 ".." next_scan
+
+		IfFileExists "$INSTDIR\$R1\*.*" check_if_new next_scan
+
+		check_if_new:
+			; Search for "|FolderName|" in the PreInstallDirList
+			${StrStr} $R2 "$PreInstallDirList" "|$R1|"
+
+			; If $R2 is empty, the folder was NOT there before. It is ours.
+			StrCmp $R2 "" add_to_list next_scan
+
+			add_to_list:
+				; Add to new list. Format: FolderName|
+				StrCpy $NewDirsList "$NewDirsList$R1|"
+				Goto next_scan
+
+		next_scan:
+			FindNext $R0 $R1
+			Goto loop_scan
+
+	done_scan:
+	FindClose $R0
+
+	; Write the final list to Registry
+	; Example content: "Data|Bin|Mods|"
+	WriteRegStr HKLM "${UNINSTALLER_KEY}" "NewDirList" "$NewDirsList"
+
+	Pop $R2
+	Pop $R1
+	Pop $R0
+FunctionEnd
+
 ; The uninstaller section
 Section Uninstall
 	; Ask for confirmation before proceeding
@@ -684,12 +840,51 @@ remove:
 	StrCmp $0 '${GAME}.${UMOD}File' 0 +2
 	DeleteRegValue HKCR ".${UMOD}" ""
 skip_unreg_umod:
+
+	; 1. Delete root files explicitly
+	; We must know these filenames or use a mask like *.dll, *.exe
+	Delete "$INSTDIR\LICENSE.md"
+	Delete "$INSTDIR\ReleaseNotes.md"
+	Delete "$INSTDIR\uninstall.exe"
+	Delete "$INSTDIR\${GAME_NAME_SHORT}.lnk"
+	Delete "$INSTDIR\UnrealEd.lnk"
+
+	; 2. Read the list of folders we created from Registry
+	ReadRegStr $R0 HKLM "${UNINSTALLER_KEY}" "NewDirList"
+	
+	; Verify string is not empty
+	StrLen $R1 $R0
+	IntCmp $R1 0 done_delete
+
+	; 3. Parse the string and delete folders one by one
+	; $R0 contains "Data|Bin|Levels|"
+	StrCpy $R1 1 ; Word counter
+	
+	loop_delete:
+		; Extract the Nth word separated by |
+		${WordFind} "$R0" "|" "E+$R1" $R2
+		
+		; If error, no more words found
+		IfErrors done_delete
+		
+		; Safe recursive delete of OUR folder
+		DetailPrint "Removing game folder: $INSTDIR\$R2"
+		RMDir /r "$INSTDIR\$R2"
+		
+		IntOp $R1 $R1 + 1
+		Goto loop_delete
+
+	done_delete:
+
+	; 4. Final Cleanup
+	; Attempt to remove the install root.
+	; WITHOUT /r flag.
+	; If user added 'Mods' or 'Screenshots', or if installed in 'C:\Games', 
+	; this command will fail safely and leave the folder alone.
+	RMDir "$INSTDIR"
 	
 	; Remove registry entries for the uninstaller registration
 	DeleteRegKey HKLM "${UNINSTALLER_KEY}"
-	
-	; Finally remove the installation directory
-	RMDir /r "$INSTDIR"
 SectionEnd
 
 !macroend
