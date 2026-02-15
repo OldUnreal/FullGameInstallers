@@ -4,6 +4,8 @@
 Name "${GAME_NAME}"
 
 !define UNINSTALLER_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\OldUnreal_${GAME}"
+!define UNINST_EXE "$INSTDIR\Uninstall_${GAME}.exe"
+!define UNINST_INI "$INSTDIR\Uninstall_${GAME}.ini"
 
 Var KeepFiles
 Var ProtocolHandler
@@ -128,15 +130,16 @@ SectionEnd
 
 Section "Install the uninstaller" SecUninstaller
 	; Write the uninstaller executable to the installation directory
-	WriteUninstaller "$INSTDIR\Uninstall_${GAME}.exe"
+	WriteUninstaller "${UNINST_EXE}"
 	
 	WriteRegStr HKLM "${UNINSTALLER_KEY}" "DisplayName" "${GAME_NAME}"
-	WriteRegStr HKLM "${UNINSTALLER_KEY}" "UninstallString" "$INSTDIR\Uninstall_${GAME}.exe"
+	WriteRegStr HKLM "${UNINSTALLER_KEY}" "UninstallString" "${UNINST_EXE}"
 	WriteRegStr HKLM "${UNINSTALLER_KEY}" "DisplayIcon" "$INSTDIR\System\${GAME_EXE}"
 	WriteRegStr HKLM "${UNINSTALLER_KEY}" "Publisher" "Epic Games"
 	WriteRegStr HKLM "${UNINSTALLER_KEY}" "DisplayVersion" "OldUnreal Edition"
-	WriteRegStr HKLM "${UNINSTALLER_KEY}" "DesktopLinks" "$DesktopLinks"
-	WriteRegStr HKLM "${UNINSTALLER_KEY}" "StartMenuLinks" "$StartMenuLinks"
+	WriteINIStr "${UNINST_INI}" "Uninstall" "InstallPath" "$INSTDIR"
+	WriteINIStr "${UNINST_INI}" "Uninstall" "DesktopLinks" "$DesktopLinks"
+	WriteINIStr "${UNINST_INI}" "Uninstall" "StartMenuLinks" "$StartMenuLinks"
 	WriteRegDWORD HKLM "${UNINSTALLER_KEY}" "NoModify" 1
 SectionEnd
 
@@ -793,7 +796,7 @@ Function SaveNewDirsToRegistry
 
 	; Write the final list to Registry
 	; Example content: "Data|Bin|Mods|"
-	WriteRegStr HKLM "${UNINSTALLER_KEY}" "NewDirList" "$NewDirsList"
+	WriteINIStr "${UNINST_INI}" "Uninstall" "NewDirList" "$NewDirsList"
 
 	Pop $R2
 	Pop $R1
@@ -809,12 +812,12 @@ Section Uninstall
 	Abort "User canceled the uninstallation process."
 
 remove:
-	ReadRegStr $0 HKLM "${UNINSTALLER_KEY}" "DesktopLinks"
+	ReadINIStr $0 "${UNINST_INI}" "Uninstall" "DesktopLinks"
 	StrCmp $0 "" +3 0
 	Delete "$DESKTOP\${GAME_NAME_SHORT}.lnk"
 	Delete "$DESKTOP\UnrealEd.lnk"
 
-	ReadRegStr $0 HKLM "${UNINSTALLER_KEY}" "StartMenuLinks"
+	ReadINIStr $0 "${UNINST_INI}" "Uninstall" "StartMenuLinks"
 	StrCmp $0 "" +4 0
 	Delete "$STARTMENU\Programs\${GAME_NAME}\${GAME_NAME_SHORT}.lnk"
 	Delete "$STARTMENU\Programs\${GAME_NAME}\UnrealEd.lnk"
@@ -840,17 +843,8 @@ remove:
 	StrCmp $0 '${GAME}.${UMOD}File' 0 +2
 	DeleteRegValue HKCR ".${UMOD}" ""
 skip_unreg_umod:
-
-	; 1. Delete root files explicitly
-	; We must know these filenames or use a mask like *.dll, *.exe
-	Delete "$INSTDIR\LICENSE.md"
-	Delete "$INSTDIR\ReleaseNotes.md"
-	Delete "$INSTDIR\Uninstall_${GAME}.exe"
-	Delete "$INSTDIR\${GAME_NAME_SHORT}.lnk"
-	Delete "$INSTDIR\UnrealEd.lnk"
-
 	; 2. Read the list of folders we created from Registry
-	ReadRegStr $R0 HKLM "${UNINSTALLER_KEY}" "NewDirList"
+	ReadINIStr $R0 "${UNINST_INI}" "Uninstall" "NewDirList"
 	
 	; Verify string is not empty
 	StrLen $R1 $R0
@@ -875,6 +869,15 @@ skip_unreg_umod:
 		Goto loop_delete
 
 	done_delete:
+	
+	; 1. Delete root files explicitly
+	; We must know these filenames or use a mask like *.dll, *.exe
+	Delete "$INSTDIR\LICENSE.md"
+	Delete "$INSTDIR\ReleaseNotes.md"
+	Delete "$INSTDIR\${GAME_NAME_SHORT}.lnk"
+	Delete "$INSTDIR\UnrealEd.lnk"
+	Delete "${UNINST_INI}"
+	Delete "${UNINST_EXE}"
 
 	; 4. Final Cleanup
 	; Attempt to remove the install root.
