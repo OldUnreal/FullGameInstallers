@@ -128,10 +128,10 @@ SectionEnd
 
 Section "Install the uninstaller" SecUninstaller
 	; Write the uninstaller executable to the installation directory
-	WriteUninstaller "$INSTDIR\Uninstall.exe"
+	WriteUninstaller "$INSTDIR\Uninstall_${GAME}.exe"
 	
 	WriteRegStr HKLM "${UNINSTALLER_KEY}" "DisplayName" "${GAME_NAME}"
-	WriteRegStr HKLM "${UNINSTALLER_KEY}" "UninstallString" "$INSTDIR\Uninstall.exe"
+	WriteRegStr HKLM "${UNINSTALLER_KEY}" "UninstallString" "$INSTDIR\Uninstall_${GAME}.exe"
 	WriteRegStr HKLM "${UNINSTALLER_KEY}" "DisplayIcon" "$INSTDIR\System\${GAME_EXE}"
 	WriteRegStr HKLM "${UNINSTALLER_KEY}" "Publisher" "Epic Games"
 	WriteRegStr HKLM "${UNINSTALLER_KEY}" "DisplayVersion" "OldUnreal Edition"
@@ -845,7 +845,7 @@ skip_unreg_umod:
 	; We must know these filenames or use a mask like *.dll, *.exe
 	Delete "$INSTDIR\LICENSE.md"
 	Delete "$INSTDIR\ReleaseNotes.md"
-	Delete "$INSTDIR\uninstall.exe"
+	Delete "$INSTDIR\Uninstall_${GAME}.exe"
 	Delete "$INSTDIR\${GAME_NAME_SHORT}.lnk"
 	Delete "$INSTDIR\UnrealEd.lnk"
 
