@@ -1,3 +1,3 @@
 @echo off
-cd Installer
-tools\php\php install.php %* && cd .. && start "" "." || pause
+pushd "%~dp0"
+.\tools\php\php install.php %* && cd .. && start "" "." || pause
