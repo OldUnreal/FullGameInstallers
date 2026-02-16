@@ -2,7 +2,7 @@
 date_default_timezone_set('UTC');
 register_shutdown_function('on_exit');
 chdir(dirname(__FILE__));
-log_('Installer v1.8 started.'.PHP_EOL);
+log_('Installer v1.9 started.'.PHP_EOL);
 title('Loading...');
 if (file_exists('installed')) unlink('installed');
 if (file_exists('failed')) unlink('failed');
@@ -222,15 +222,15 @@ title('Downloading patch ZIP...');
 
 get_file($patch['browser_download_url'], $patch['size']);
 
-$cmd_7z = '.\tools\7z.exe x -aoa -o.. -bsp1 ';
+$cmd_7z = 'tools\7z.exe x -aoa -o.. -bsp1 ';
 
 if (!$cd_drive) {
 	title('Unpacking game ISO...');
 
 	if ($game == 'ut2004') {
-		run('.\tools\7z.exe e -aoa -ocabs -bsp1 -ir!*.cab -ir!*.hdr '.escapeshellarg($iso_name));
+		run('tools\7z.exe e -aoa -ocabs -bsp1 -ir!*.cab -ir!*.hdr '.escapeshellarg($iso_name));
 
-		run('.\tools\unshield.exe -d data x cabs/data1.cab');
+		run('tools\unshield.exe -d data x cabs/data1.cab');
 
 		function moveAllRecursive($src, $dst) {
 			$src = rtrim($src, '\\/') ;
@@ -306,7 +306,7 @@ $progress = 'Unpacking game files... ';
 title($progress);
 
 $uzs = glob_recursive('../*.uz');
-if ($uzs) run('.\tools\uz.exe decompress "..\Maps\*.uz"');
+if ($uzs) run('tools\uz.exe decompress "..\Maps\*.uz"');
 $done = 0;
 $cnt = count($uzs);
 foreach ($uzs as $uz) {
@@ -424,7 +424,7 @@ function download($url, $expected_size, $die = true) {
 
 	$insecure = date('Y') < 2026 ? '--check-certificate=false ' : ''; // Wrong date -> TLS will fail (cert not yet issued) -> use insecure connection.
 	if ($insecure) log_('Wrong current date on computer detected ('.date('Y-m-d').'). Use insecure connection.');
-	$result = run('.\tools\aria2c.exe --enable-color=false --allow-overwrite=true --auto-file-renaming=false -x5 --ca-certificate=tools\ca-certificates.crt -o '.
+	$result = run('tools\aria2c.exe --enable-color=false --allow-overwrite=true --auto-file-renaming=false -x5 --ca-certificate=tools\ca-certificates.crt -o '.
 		escapeshellarg($result_file).' '.$insecure.escapeshellarg($url));
 
 	if ($result != 0) {
