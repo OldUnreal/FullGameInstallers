@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Install Unreal Tournament: GOTY
+Comment=Download and install Unreal Tournament (Game of the Year Edition)
+Type=Application
+Terminal=true
+Exec=bash -c 'set -euo pipefail; URL="https://raw.githubusercontent.com/OldUnreal/FullGameInstallers/master/Linux/install-ut99.sh"; if command -v curl >/dev/null 2>&1; then curl -fL "$URL" | bash -s -- --application-entry=install; elif command -v wget >/dev/null 2>&1; then wget -qO- "$URL" | bash -s -- --application-entry=install; elif command -v wget2 >/dev/null 2>&1; then wget2 -qO- "$URL" | bash -s -- --application-entry=install; else echo "Error: curl or wget required" >&2; exit 1; fi'
+StartupNotify=true
+Categories=Game;
