@@ -13,7 +13,7 @@
 # ARG_OPTIONAL_BOOLEAN([unrealed],[e],[Install UnrealEd (Windows, umu-launcher recommended).],[])
 # ARG_OPTIONAL_BOOLEAN([keep-installer-files],[k],[Keep ISO and Patch files.],[])
 # ARG_HELP([Install Unreal Tournament 2004])
-# ARG_VERSION_AUTO([1.2],['OldUnreal <https://oldunreal.com>'])
+# ARG_VERSION_AUTO([1.2.1],['OldUnreal <https://oldunreal.com>'])
 # DEFINE_SCRIPT_DIR([_SCRIPT_DIR])
 # ARGBASH_GO()
 # needed because of Argbash --> m4_ignore([
@@ -144,11 +144,11 @@ parse_commandline() {
       exit 0
       ;;
     -v | --version)
-      printf '%s %s\n\n%s\n%s\n' "install-ut2004.sh" "1.2" 'Install Unreal Tournament 2004' 'OldUnreal <https://oldunreal.com>'
+      printf '%s %s\n\n%s\n%s\n' "install-ut2004.sh" "1.2.1" 'Install Unreal Tournament 2004' 'OldUnreal <https://oldunreal.com>'
       exit 0
       ;;
     -v*)
-      printf '%s %s\n\n%s\n%s\n' "install-ut2004.sh" "1.2" 'Install Unreal Tournament 2004' 'OldUnreal <https://oldunreal.com>'
+      printf '%s %s\n\n%s\n%s\n' "install-ut2004.sh" "1.2.1" 'Install Unreal Tournament 2004' 'OldUnreal <https://oldunreal.com>'
       exit 0
       ;;
     *)
@@ -613,7 +613,7 @@ installer::entrypoint() {
   local DOWNLOADER_DL_BIN=""
   local DOWNLOADER_DL_TYPE=""
 
-  local DOWNLOADER_USER_AGENT="OldUnreal-${PRODUCT_SHORTNAME}-Linux-Installer/1.2"
+  local DOWNLOADER_USER_AGENT="OldUnreal-${PRODUCT_SHORTNAME}-Linux-Installer/1.2.1"
 
   # For archive.org links, aria2c will be instructed to open multiple connections at the same time
   local ARIA2C_ARCHIVEORG_CONNECTIONS="${OLDUNREAL_ARCHIVEORG_ARIA2C_CONNECTIONS:-4}"
@@ -2103,6 +2103,30 @@ You may read the Terms of Service at this URL:
 
     local SYSTEM_FOLDER="${_arg_destination%/}/System${UE_SYSTEM_FOLDER_SUFFIX}"
 
+    # Remove files with different casing than the patch payload
+    COMMON_WRONG_CASINGS=(
+      "Bonuspack.u"
+      "Gui2K4.u"
+      "Gameplay.u"
+      "Ipdrv.u"
+      "Skaarjpack.u"
+      "StreamLineFX.u"
+      "UT2K4Assault.u"
+      "UT2K4AssaultFull.u"
+      "XVoting.u"
+      "xWebAdmin.u"
+    )
+
+    for WRONG_CASING in "${COMMON_WRONG_CASINGS[@]}"; do
+      if [[ -f "${SYSTEM_FOLDER}/${WRONG_CASING}" ]]; then
+        rm -f "${SYSTEM_FOLDER}/${WRONG_CASING}"
+      fi
+
+      if [[ -f "${_arg_destination%/}/System/${WRONG_CASING}" ]]; then
+        rm -f "${_arg_destination%/}/System/${WRONG_CASING}"
+      fi
+    done
+
     # Remove provided libopenal if provided by the system
     if [[ -f "${SYSTEM_FOLDER}/libopenal.so.1" ]] && [[ -n "$(step::ut2004_special_fixes::find_library libopenal.so.1)" ]]; then
       rm -f "${SYSTEM_FOLDER}/libopenal.so.1" "${SYSTEM_FOLDER}/libopenal.so.1."*
@@ -2210,7 +2234,7 @@ You may read the Terms of Service at this URL:
     local SEARCH_PATHS=("/usr/lib/${DETECTED_ARCHITECTURE}-linux-gnu" "/usr/lib64" "/usr/local/lib" "/lib/${DETECTED_ARCHITECTURE}-linux-gnu")
     local CURRENT_PATH
     for CURRENT_PATH in "${SEARCH_PATHS[@]}"; do
-      if [ -f "${CURRENT_PATH}/${LIBRARY_NAME}" ]; then
+      if [[ -f "${CURRENT_PATH}/${LIBRARY_NAME}" ]]; then
         echo "${LIBRARY_NAME}"
         break
       fi

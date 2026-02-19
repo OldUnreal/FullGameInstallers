@@ -13,7 +13,7 @@
 # ARG_OPTIONAL_BOOLEAN([unrealed],[e],[Install UnrealEd (Windows, umu-launcher recommended).],[])
 # ARG_OPTIONAL_BOOLEAN([keep-installer-files],[k],[Keep ISO and Patch files.],[])
 # ARG_HELP([Install Unreal Tournament: GOTY])
-# ARG_VERSION_AUTO([1.2],['OldUnreal <https://oldunreal.com>'])
+# ARG_VERSION_AUTO([1.2.1],['OldUnreal <https://oldunreal.com>'])
 # DEFINE_SCRIPT_DIR([_SCRIPT_DIR])
 # ARGBASH_GO()
 # needed because of Argbash --> m4_ignore([
@@ -144,11 +144,11 @@ parse_commandline() {
       exit 0
       ;;
     -v | --version)
-      printf '%s %s\n\n%s\n%s\n' "install-ut99.sh" "1.2" 'Install Unreal Tournament: GOTY' 'OldUnreal <https://oldunreal.com>'
+      printf '%s %s\n\n%s\n%s\n' "install-ut99.sh" "1.2.1" 'Install Unreal Tournament: GOTY' 'OldUnreal <https://oldunreal.com>'
       exit 0
       ;;
     -v*)
-      printf '%s %s\n\n%s\n%s\n' "install-ut99.sh" "1.2" 'Install Unreal Tournament: GOTY' 'OldUnreal <https://oldunreal.com>'
+      printf '%s %s\n\n%s\n%s\n' "install-ut99.sh" "1.2.1" 'Install Unreal Tournament: GOTY' 'OldUnreal <https://oldunreal.com>'
       exit 0
       ;;
     *)
@@ -613,7 +613,7 @@ installer::entrypoint() {
   local DOWNLOADER_DL_BIN=""
   local DOWNLOADER_DL_TYPE=""
 
-  local DOWNLOADER_USER_AGENT="OldUnreal-${PRODUCT_SHORTNAME}-Linux-Installer/1.2"
+  local DOWNLOADER_USER_AGENT="OldUnreal-${PRODUCT_SHORTNAME}-Linux-Installer/1.2.1"
 
   # For archive.org links, aria2c will be instructed to open multiple connections at the same time
   local ARIA2C_ARCHIVEORG_CONNECTIONS="${OLDUNREAL_ARCHIVEORG_ARIA2C_CONNECTIONS:-4}"

@@ -8,7 +8,7 @@ local DOWNLOADER_API_TYPE=""
 local DOWNLOADER_DL_BIN=""
 local DOWNLOADER_DL_TYPE=""
 
-local DOWNLOADER_USER_AGENT="OldUnreal-${PRODUCT_SHORTNAME}-Linux-Installer/1.2"
+local DOWNLOADER_USER_AGENT="OldUnreal-${PRODUCT_SHORTNAME}-Linux-Installer/1.2.1"
 
 # For archive.org links, aria2c will be instructed to open multiple connections at the same time
 local ARIA2C_ARCHIVEORG_CONNECTIONS="${OLDUNREAL_ARCHIVEORG_ARIA2C_CONNECTIONS:-4}"
