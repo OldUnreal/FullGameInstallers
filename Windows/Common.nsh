@@ -86,7 +86,7 @@ Function VerifyInstallDirectory
 		Current Target: $INSTDIR$\n$\n\
 		If you continue:$\n\
 		  1. Files will be placed EXACTLY in this folder.$\n\
-		  2. NO SUBFOLDER (like '\${GAME_NAME_SHORT}') will be created.$\n\
+		  2. NO SUBFOLDER (like '\${GAME}') will be created.$\n\
 		  3. Game files will be mixed with existing files.$\n$\n\
 		Are you absolutely sure you want to install here?" \
 		IDYES is_safe
@@ -95,6 +95,61 @@ Function VerifyInstallDirectory
 		Abort
 
 	is_safe:
+	
+	; Save registers to stack to avoid overwriting global variables
+		Push $0
+		Push $1
+	
+		; -----------------------------------------------------------
+		; Check 1: Is it in standard Program Files (usually x86)?
+		; -----------------------------------------------------------
+		StrLen $0 $PROGRAMFILES
+		StrCpy $1 $INSTDIR $0
+		; If strings match, go to next line (warning), else jump to next check
+		StrCmp $1 $PROGRAMFILES 0 check_pfiles64
+		Goto show_warning
+	
+	check_pfiles64:
+		; -----------------------------------------------------------
+		; Check 2: Is it in 64-bit Program Files?
+		; (Only relevant on 64-bit Windows, but safe to check on all)
+		; -----------------------------------------------------------
+		StrLen $0 $PROGRAMFILES64
+		; If length is 0 (unlikely but possible on old OS), skip
+		IntCmp $0 0 check_windir
+		StrCpy $1 $INSTDIR $0
+		StrCmp $1 $PROGRAMFILES64 0 check_windir
+		Goto show_warning
+	
+	check_windir:
+		; -----------------------------------------------------------
+		; Check 3: Is it in the Windows directory?
+		; -----------------------------------------------------------
+		StrLen $0 $WINDIR
+		StrCpy $1 $INSTDIR $0
+		StrCmp $1 $WINDIR 0 done
+		Goto show_warning
+	
+	show_warning:
+		; Show the warning message
+	MessageBox MB_YESNO|MB_ICONSTOP \
+		"Warning! You are attempting to install into a protected system directory ($INSTDIR).$\r$\n$\r$\n\
+		This game requires write access to its installation folder. If installed here, IT WILL NOT WORK unless you run it as Administrator every time.$\r$\n$\r$\n\
+		To avoid crashes and startup failures, please choose a non-system folder (e.g. C:\Games\${GAME}).$\r$\n$\r$\n\
+		Do you still want to proceed despite this risk?" \
+		IDYES done IDNO abort_install
+	
+	abort_install:
+		; User clicked 'No', restore registers and stay on the directory page
+		Pop $1
+		Pop $0
+		Abort
+	
+	done:
+		; User clicked 'Yes' or path is safe. Restore registers and proceed.
+		Pop $1
+		Pop $0
+
 FunctionEnd
 
 !insertmacro MUI_PAGE_DIRECTORY
