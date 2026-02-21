@@ -14,8 +14,12 @@ This folder contains the OldUnreal installers for Unreal Gold, Unreal Tournament
 
 > [!NOTE]
 > This method will not allow you to change the default installation path. Use **Method 2: install script** if you wish to specify a different installation directory.
+>
+> GNOME users may need to move the `.desktop` file from their Downloads folder into either their Desktop or Applications folder.
+>
+> If you are having issues, please use **Method 2: install script**.
 
-1. Download the .desktop file for the title you wish to install:
+1. Download (_right click › Save Link As_) the .desktop file for the title you wish to install:
   - <a href="https://raw.githubusercontent.com/OldUnreal/FullGameInstallers/master/Linux/install-unreal.desktop" download>Unreal Gold</a>
   - <a href="https://raw.githubusercontent.com/OldUnreal/FullGameInstallers/master/Linux/install-ut99.desktop" download>Unreal Tournament: GOTY</a>
   - <a href="https://raw.githubusercontent.com/OldUnreal/FullGameInstallers/master/Linux/install-ut2004.desktop" download>Unreal Tournament 2004</a>
@@ -26,7 +30,7 @@ This folder contains the OldUnreal installers for Unreal Gold, Unreal Tournament
 
 ### Method 2: install script
 
-1. Download the installation script for the title you wish to install:
+1. Download (_right click › Save Link As_) the installation script for the title you wish to install:
   - <a href="https://raw.githubusercontent.com/OldUnreal/FullGameInstallers/master/Linux/install-unreal.sh" download>Unreal Gold</a>
   - <a href="https://raw.githubusercontent.com/OldUnreal/FullGameInstallers/master/Linux/install-ut99.sh" download>Unreal Tournament: GOTY</a>
   - <a href="https://raw.githubusercontent.com/OldUnreal/FullGameInstallers/master/Linux/install-ut2004.sh" download>Unreal Tournament 2004</a>
