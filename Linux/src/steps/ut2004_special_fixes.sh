@@ -5,29 +5,32 @@ step::ut2004_special_fixes() {
 
   local SYSTEM_FOLDER="${_arg_destination%/}/System${UE_SYSTEM_FOLDER_SUFFIX}"
 
-  # Remove files with different casing than the patch payload
-  COMMON_WRONG_CASINGS=(
-    "Bonuspack.u"
-    "Gui2K4.u"
-    "Gameplay.u"
-    "Ipdrv.u"
-    "Skaarjpack.u"
-    "StreamLineFX.u"
-    "UT2K4Assault.u"
-    "UT2K4AssaultFull.u"
-    "XVoting.u"
-    "xWebAdmin.u"
-  )
+  if [[ "${IS_DESTINATION_CASE_SENSITIVE_FS}" == "yes" ]]; then
+    # Remove files with different casing than the patch payload
+    local WRONG_CASING
+    local COMMON_WRONG_CASINGS=(
+      "Bonuspack.u"
+      "Gui2K4.u"
+      "Gameplay.u"
+      "Ipdrv.u"
+      "Skaarjpack.u"
+      "StreamLineFX.u"
+      "UT2K4Assault.u"
+      "UT2K4AssaultFull.u"
+      "XVoting.u"
+      "xWebAdmin.u"
+    )
 
-  for WRONG_CASING in "${COMMON_WRONG_CASINGS[@]}"; do
-    if [[ -f "${SYSTEM_FOLDER}/${WRONG_CASING}" ]]; then
-      rm -f "${SYSTEM_FOLDER}/${WRONG_CASING}"
-    fi
+    for WRONG_CASING in "${COMMON_WRONG_CASINGS[@]}"; do
+      if [[ -f "${SYSTEM_FOLDER}/${WRONG_CASING}" ]]; then
+        rm -f "${SYSTEM_FOLDER}/${WRONG_CASING}"
+      fi
 
-    if [[ -f "${_arg_destination%/}/System/${WRONG_CASING}" ]]; then
-      rm -f "${_arg_destination%/}/System/${WRONG_CASING}"
-    fi
-  done
+      if [[ -f "${_arg_destination%/}/System/${WRONG_CASING}" ]]; then
+        rm -f "${_arg_destination%/}/System/${WRONG_CASING}"
+      fi
+    done
+  fi
 
   # Remove provided libopenal if provided by the system
   if [[ -f "${SYSTEM_FOLDER}/libopenal.so.1" ]] && [[ -n "$(step::ut2004_special_fixes::find_library libopenal.so.1)" ]]; then
