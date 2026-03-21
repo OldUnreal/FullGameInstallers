@@ -96,10 +96,24 @@ Function VerifyInstallDirectory
 
 	is_safe:
 	
-	; Save registers to stack to avoid overwriting global variables
+		; Save registers to stack to avoid overwriting global variables
 		Push $0
 		Push $1
 	
+		; -----------------------------------------------------------
+		; Check 0: Is it the root of a drive? (length <= 3)
+		; -----------------------------------------------------------
+		StrLen $0 $INSTDIR
+		IntCmp $0 3 show_root_warning show_root_warning check_pfiles
+
+	show_root_warning:
+		MessageBox MB_YESNO|MB_ICONSTOP \
+		"Warning! You are attempting to install directly into the root of a drive ($INSTDIR).$\r$\n$\r$\n\
+		Please choose or create a subfolder.$\r$\n$\r$\n\
+		Do you still want to proceed?" \
+		IDYES check_pfiles IDNO abort_install
+
+	check_pfiles:
 		; -----------------------------------------------------------
 		; Check 1: Is it in standard Program Files (usually x86)?
 		; -----------------------------------------------------------
