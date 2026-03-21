@@ -2,7 +2,7 @@
 date_default_timezone_set('UTC');
 register_shutdown_function('on_exit');
 chdir(dirname(__FILE__));
-log_('Installer v1.10 started.'.PHP_EOL);
+log_('Installer v1.11 started.'.PHP_EOL);
 title('Loading...');
 if (file_exists('installed')) unlink('installed');
 if (file_exists('failed')) unlink('failed');
@@ -108,22 +108,48 @@ if (!$cd_drive) {
 	title('Downloading game ISO...');
 
 	$iso_name = false;
+	$iso_path = null;
+	$iso_external = false;
 	$hashes = array();
+	$installer_exedir = '';
+	$ief = __DIR__.'/installer_exedir.txt';
+	if (is_readable($ief)) {
+		$installer_exedir = trim(file_get_contents($ief), "\r\n");
+		@unlink($ief);
+	}
 	foreach ($config['iso'] as $iso_url => $iso_data) {
 		list($iso_size, $iso_hash) = explode('_', $iso_data, 2);
 		$iso_size = floatval($iso_size); // Don't use intval() to avoid overflow on 32-bit PHP.
-		$iso_name = basename($iso_url);
-		if (file_exists($iso_name) && size_same(filesize($iso_name), $iso_size)) {
-			if (!isset($hashes[$iso_name])) {
-				log_('Calculate hash for '.$iso_name);
-				$hashes[$iso_name] = md5_file($iso_name);
-				log_('Hash: '.$hashes[$iso_name]);
-			}
-			if ($hashes[$iso_name] == $iso_hash) break;
+		$base = basename($iso_url);
+		$candidates = array(
+			array(__DIR__.DIRECTORY_SEPARATOR.$base, false),
+		);
+		if ($installer_exedir !== '') {
+			$candidates[] = array($installer_exedir.DIRECTORY_SEPARATOR.$base, true);
 		}
-		$iso_name = false;
+		foreach ($candidates as $cand) {
+			list($full, $ext) = $cand;
+			if (!file_exists($full)) {
+				continue;
+			}
+			if (!size_same(filesize($full), $iso_size)) {
+				continue;
+			}
+			if (!isset($hashes[$full])) {
+				log_('Calculate hash for '.$full);
+				$hashes[$full] = md5_file($full);
+				log_('Hash: '.$hashes[$full]);
+			}
+			if ($hashes[$full] != $iso_hash) {
+				continue;
+			}
+			$iso_name = $base;
+			$iso_path = $full;
+			$iso_external = $ext;
+			break 2;
+		}
 	}
-	if (!$iso_name) {
+	if (!$iso_name || !$iso_path) {
 		reset($config['iso']);
 		$files_ou = key($config['iso']);
 		if (strpos($files_ou, 'files.oldunreal.net')) {
@@ -160,10 +186,14 @@ if (!$cd_drive) {
 				log_('Calculate hash for '.$iso_name);
 				$file_hash = md5_file($iso_name);
 				log_('Hash: '.$file_hash);
-				if ($file_hash == $iso_hash) break;
+			if ($file_hash == $iso_hash) {
+				$iso_path = __DIR__.DIRECTORY_SEPARATOR.$iso_name;
+				$iso_external = false;
+				break;
 			}
 		}
 	}
+}
 }
 
 $win_ver = php_uname('r');
@@ -228,7 +258,7 @@ if (!$cd_drive) {
 	title('Unpacking game ISO...');
 
 	if ($game == 'ut2004') {
-		run('tools\7z.exe e -aoa -ocabs -bsp1 -ir!*.cab -ir!*.hdr '.escapeshellarg($iso_name));
+		run('tools\7z.exe e -aoa -ocabs -bsp1 -ir!*.cab -ir!*.hdr '.escapeshellarg($iso_path));
 
 		run('tools\unshield.exe -d data x cabs/data1.cab');
 
@@ -288,7 +318,7 @@ if (!$cd_drive) {
 		run('rmdir /S /Q cabs');
 		run('rmdir /S /Q data');
 	} else {
-		run($cmd_7z.'-x@skip.txt '.escapeshellarg($iso_name));
+		run($cmd_7z.'-x@skip.txt '.escapeshellarg($iso_path));
 	}
 }
 
@@ -349,7 +379,9 @@ title('Remove downloaded files...');
 
 if (!$keep_files) {
 	unlink(basename($config['patch']));
-	unlink($iso_name);
+	if (!$cd_drive && $iso_path && !$iso_external && is_file($iso_path)) {
+		unlink($iso_path);
+	}
 	unlink(basename($patch['browser_download_url']));
 }
 

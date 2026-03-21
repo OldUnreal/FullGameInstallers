@@ -322,13 +322,29 @@ Section
 	
 	Var /GLOBAL Failed
 	Var /GLOBAL GetISO
+	Var /GLOBAL IsoPathForOps
+	Var /GLOBAL IsoUseExternal
 	
-	IfFileExists "$INSTDIR\Installer\${ISO_NAME}" 0 run_script
+	StrCpy $IsoPathForOps "$EXEDIR\${ISO_NAME}"
+	StrCpy $IsoUseExternal ""
+	StrCpy $GetISO ""
 	
-	Push "$INSTDIR\Installer\${ISO_NAME}"
+	IfFileExists "$IsoPathForOps" 0 resolve_iso_instdir
+	Push "$IsoPathForOps"
 	Call FileSizeIso
 	Pop $0
+	StrCmp $0 "0" resolve_iso_instdir 0
+	StrCpy $GetISO "exists+match"
+	StrCpy $IsoUseExternal "1"
+	Goto run_script
 	
+resolve_iso_instdir:
+	StrCpy $IsoPathForOps "$INSTDIR\Installer\${ISO_NAME}"
+	StrCpy $IsoUseExternal ""
+	IfFileExists "$IsoPathForOps" 0 run_script
+	Push "$IsoPathForOps"
+	Call FileSizeIso
+	Pop $0
 	StrCmp $0 "0" run_script 0
 	StrCpy $GetISO "exists+match"
 
@@ -343,6 +359,9 @@ run_script:
 	StrCpy $Failed "created"
 	
 	SetDetailsPrint none
+	FileOpen $9 "$INSTDIR\Installer\installer_exedir.txt" w
+	FileWrite $9 "$EXEDIR"
+	FileClose $9
 	ExecWait '"$INSTDIR\Installer\install.bat" ${GAME} $FromCD $KeepFiles'
 	SetDetailsPrint both
 	
@@ -362,11 +381,11 @@ limited_fallback:
 	MessageBox MB_OK "The limited fallback does not support installing the game from a CD. The ISO option will be used instead."
 	
 	StrCmp $GetISO "" 0 skip_download_iso
-	inetc::get /WEAKSECURITY /CAPTION "Downloading game ISO file" /RESUME "" /QUESTION "" "${ISO_URL}" "$INSTDIR\Installer\${ISO_NAME}" /END
+	inetc::get /WEAKSECURITY /CAPTION "Downloading game ISO file" /RESUME "" /QUESTION "" "${ISO_URL}" "$IsoPathForOps" /END
 	
-	IfFileExists "$INSTDIR\Installer\${ISO_NAME}" 0 iso_2
+	IfFileExists "$IsoPathForOps" 0 iso_2
 	
-	Push "$INSTDIR\Installer\${ISO_NAME}"
+	Push "$IsoPathForOps"
 	Call FileSize
 	Pop $0
 	
@@ -374,15 +393,15 @@ limited_fallback:
 	IntOp $1 $1 + 0
 	StrCmp $0 $1 unpack_iso 0
 	
-	Delete "$INSTDIR\Installer\${ISO_NAME}"
+	Delete "$IsoPathForOps"
 	
 iso_2:
 !ifdef ISO_SIZE_BYTES2
-	inetc::get /WEAKSECURITY /CAPTION "Downloading game ISO file" /RESUME "" /QUESTION "" "${ISO_URL2}" "$INSTDIR\Installer\${ISO_NAME}" /END
+	inetc::get /WEAKSECURITY /CAPTION "Downloading game ISO file" /RESUME "" /QUESTION "" "${ISO_URL2}" "$IsoPathForOps" /END
 	
-	IfFileExists "$INSTDIR\Installer\${ISO_NAME}" 0 iso_3
+	IfFileExists "$IsoPathForOps" 0 iso_3
 	
-	Push "$INSTDIR\Installer\${ISO_NAME}"
+	Push "$IsoPathForOps"
 	Call FileSize
 	Pop $0
 	
@@ -390,18 +409,18 @@ iso_2:
 	IntOp $1 $1 + 0
 	StrCmp $0 $1 unpack_iso 0
 	
-	Delete "$INSTDIR\Installer\${ISO_NAME}"
+	Delete "$IsoPathForOps"
 !endif
 
 iso_3:
 !ifdef ISO_SIZE_BYTES3
-	inetc::get /WEAKSECURITY /CAPTION "Downloading game ISO file" /RESUME "" /QUESTION "" "${ISO_URL3}" "$INSTDIR\Installer\${ISO_NAME}" /END
+	inetc::get /WEAKSECURITY /CAPTION "Downloading game ISO file" /RESUME "" /QUESTION "" "${ISO_URL3}" "$IsoPathForOps" /END
 !endif
 skip_download_iso:
 	
-	IfFileExists "$INSTDIR\Installer\${ISO_NAME}" 0 iso_not_found
+	IfFileExists "$IsoPathForOps" 0 iso_not_found
 	
-	Push "$INSTDIR\Installer\${ISO_NAME}"
+	Push "$IsoPathForOps"
 	Call FileSizeIso
 	Pop $0
 	
@@ -410,7 +429,7 @@ skip_download_iso:
 unpack_iso:
 	DetailPrint 'Unpacking game ISO...'
 	StrCmp "${GAME}" "ut2004" unpack_2004 0
-	nsExec::ExecToLog '"$INSTDIR\Installer\tools\7z.exe" x -aoa -o"$INSTDIR" -x@"$INSTDIR\Installer\skip.txt" "$INSTDIR\Installer\${ISO_NAME}"'
+	nsExec::ExecToLog '"$INSTDIR\Installer\tools\7z.exe" x -aoa -o"$INSTDIR" -x@"$INSTDIR\Installer\skip.txt" "$IsoPathForOps"'
 	
 	StrCmp "${GAME}" "ut99" 0 skip_bp4
 	DetailPrint 'Unpacking Bonus Pack 4...'	
@@ -418,7 +437,7 @@ unpack_iso:
 	Goto skip_bp4
 	
 unpack_2004:
-	nsExec::ExecToLog '"$INSTDIR\Installer\tools\7z.exe" e -aoa -o"$INSTDIR\Installer\cabs" -ir!*.cab -ir!*.hdr "$INSTDIR\Installer\${ISO_NAME}"'
+	nsExec::ExecToLog '"$INSTDIR\Installer\tools\7z.exe" e -aoa -o"$INSTDIR\Installer\cabs" -ir!*.cab -ir!*.hdr "$IsoPathForOps"'
 	
 	${StrRep} $0 $INSTDIR "\\" "/"
 	ExecWait '"$INSTDIR\Installer\tools\unshield.exe" -d "$INSTDIR\Installer\data" x "$0/Installer/cabs/data1.cab"' ; nsExec::ExecToLog kill insstaller
@@ -594,7 +613,10 @@ skip_copy_ini:
 	DetailPrint 'Remove downloaded files...';
 	StrCmp $KeepFiles "" 0 skip_remove_files
 	
-	Delete "$INSTDIR\Installer\${ISO_NAME}"
+	StrCmp $IsoUseExternal "1" 0 +2
+	Goto skip_delete_setup_iso
+	Delete "$IsoPathForOps"
+skip_delete_setup_iso:
 	Delete "$INSTDIR\Installer\tmp"
 	Delete "$INSTDIR\Installer\patch.zip"
 skip_remove_files:	
