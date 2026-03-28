@@ -8,6 +8,11 @@ step::check_dependencies() {
     return 1
   fi
 
+  if [[ "${_arg_unrealed}" == "on" ]] && [[ "${UEED_SYSTEM_FOLDER_SUFFIX}" == 'NOT_SUPPORTED' ]]; then
+    term::step::failed_with_error "CPU Architecture ${DETECTED_ARCHITECTURE} is not currently supported for UnrealEd. Remove the -e flag."
+    return 1
+  fi
+
   local MISSING_DEPS=()
   local MISSING_DEPS_RHEL=()
   local MISSING_DEPS_DEB=()
