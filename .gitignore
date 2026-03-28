@@ -1,3 +1,7 @@
 # Local only testing scripts
 Linux/**/*.local.sh
 Linux/.tmp
+Linux/*.iso
+Linux/*.zip
+Linux/*.tar.gz
+Linux/*.tgz
