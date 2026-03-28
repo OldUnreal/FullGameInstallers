@@ -269,6 +269,7 @@ SectionEnd
 ;--------------------------------
 Section "Visual C++ Redistributable (x64)" 
 	; Check if we are on a 64-bit OS first using standard NSIS instruction
+	StrCmp $PROGRAMFILES64 "" VCRedist64_Done
 	; If simple string is empty, we are likely on 32-bit
 	; (LogicLib usually handles this better, but here is a simple workaround)
 	; Assuming modern Game installer running on x64 OS:
@@ -458,12 +459,9 @@ iso_4:
         
         FindFirst $2 $3 "$INSTDIR\Installer\*.iso"
         
-        search_loop:
-            StrCmp $3 "" search_done
-            StrCpy $IsoPathForOps "$INSTDIR\Installer\$3"
-            Goto search_done             
-            FindNext $2 $3
-            Goto search_loop            
+		StrCmp $3 "" search_done
+		StrCpy $IsoPathForOps "$INSTDIR\Installer\$3"
+		Goto search_done            
 
         search_done:
         FindClose $2
@@ -984,12 +982,12 @@ remove:
 	StrCmp $0 '$INSTDIR' 0 +2
 	DeleteRegKey HKLM "SOFTWARE\Unreal Technology\Installed Apps\${PRODUCT}"
 
-	ReadRegStr $0 HKCR "unreal\shell\open\command" ""
+	ReadRegStr $0 HKCR "${PROTOCOL}\shell\open\command" ""
 	StrCmp $0 '"$INSTDIR\System\${GAME_EXE}" "%1"' 0 +2
-	DeleteRegKey HKCR "unreal"
+	DeleteRegKey HKCR "${PROTOCOL}"
 	
 	ReadRegStr $0 HKCR "${GAME}.${UMOD}File\shell\open\command" ""
-	StrCmp $0 '"$INSTDIR\System\${GAME_EXE}" "%1"' 0 skip_unreg_umod
+	StrCmp $0 '"$INSTDIR\System\Setup.exe" "%1"' 0 skip_unreg_umod
 	DeleteRegKey HKCR "${GAME}.${UMOD}File"
 	
 	ReadRegStr $0 HKCR ".${UMOD}" ""
