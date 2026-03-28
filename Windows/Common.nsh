@@ -17,6 +17,8 @@ Var StartMenuLinks
 Var PreInstallDirList
 Var NewDirsList
 
+Var UsedZip
+
 !include "WinVer.nsh"
 
 !include "StrFunc.nsh"
@@ -415,6 +417,57 @@ iso_2:
 iso_3:
 !ifdef ISO_SIZE_BYTES3
 	inetc::get /WEAKSECURITY /CAPTION "Downloading game ISO file" /RESUME "" /QUESTION "" "${ISO_URL3}" "$IsoPathForOps" /END
+	
+	IfFileExists "$IsoPathForOps" 0 iso_4
+	
+	Push "$IsoPathForOps"
+	Call FileSize
+	Pop $0
+	
+	StrCpy $1 "${ISO_SIZE_BYTES3}"
+	IntOp $1 $1 + 0
+	StrCmp $0 $1 unpack_iso 0
+	
+	Delete "$IsoPathForOps"
+!endif
+
+iso_4:
+!ifdef ISO_SIZE_BYTES4
+	inetc::get /WEAKSECURITY /CAPTION "Downloading game ISO file" /RESUME "" /QUESTION "" "${ISO_URL4}" "$IsoPathForOps" /END
+
+	IfFileExists "$IsoPathForOps" 0 skip_download_iso
+	
+	Push "$IsoPathForOps"
+	Call FileSize
+	Pop $0
+	
+	StrCpy $1 "${ISO_SIZE_BYTES4}"
+	IntOp $1 $1 + 0
+	StrCmp $0 $1 0 skip_download_iso
+
+    StrCpy $0 "${ISO_URL4}" "" -4
+    
+    StrCmp $0 ".zip" is_zip
+    StrCmp $0 ".ZIP" is_zip skip_zip
+
+    is_zip:
+        Rename "$IsoPathForOps" "$IsoPathForOps.zip"
+		StrCpy $UsedZip "$IsoPathForOps.zip"
+
+        nsExec::ExecToLog '"$INSTDIR\Installer\tools\7z.exe" x -aoa -y -o"$INSTDIR\Installer\" "$IsoPathForOps.zip"'
+        
+        FindFirst $2 $3 "$INSTDIR\Installer\*.iso"
+        
+        search_loop:
+            StrCmp $3 "" search_done
+            StrCpy $IsoPathForOps "$INSTDIR\Installer\$3"
+            Goto search_done             
+            FindNext $2 $3
+            Goto search_loop            
+
+        search_done:
+        FindClose $2
+    skip_zip:
 !endif
 skip_download_iso:
 	
@@ -612,6 +665,10 @@ skip_copy_ini:
 
 	DetailPrint 'Remove downloaded files...';
 	StrCmp $KeepFiles "" 0 skip_remove_files
+
+	StrCmp $UsedZip "" +3 0
+	Delete $IsoPathForOps
+	StrCpy $IsoPathForOps $UsedZip
 	
 	StrCmp $IsoUseExternal "1" 0 +2
 	Goto skip_delete_setup_iso
@@ -791,6 +848,11 @@ Function FileSizeIso
 	!endif
 	!ifdef ISO_SIZE_BYTES3
 		StrCpy $1 "${ISO_SIZE_BYTES3}"
+		IntOp $1 $1 + 0
+		StrCmp $0 $1 FileSizeIso_return 0
+	!endif
+	!ifdef ISO_SIZE_BYTES4
+		StrCpy $1 "${ISO_SIZE_BYTES4}"
 		IntOp $1 $1 + 0
 		StrCmp $0 $1 FileSizeIso_return 0
 	!endif

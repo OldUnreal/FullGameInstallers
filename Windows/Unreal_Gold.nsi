@@ -7,9 +7,13 @@
 !define GAME_EXE "Unreal.exe"
 !define ISO_NAME "UNREAL_GOLD.iso"
 !define ISO_URL "https://files.oldunreal.net/UNREAL_GOLD.ISO"
-!define ISO_URL2 "https://archive.org/download/totallyunreal/UNREAL_GOLD.ISO"
+!define ISO_URL2 "https://files2.oldunreal.net/UNREAL_GOLD.ISO"
+!define ISO_URL3 "https://files3.oldunreal.net/UNREAL_GOLD.ISO"
+!define ISO_URL4 "https://archive.org/download/totallyunreal/UNREAL_GOLD.ISO"
 !define ISO_SIZE_BYTES 676734976
 !define ISO_SIZE_BYTES2 676734976
+!define ISO_SIZE_BYTES3 676734976
+!define ISO_SIZE_BYTES4 676734976
 !define PATCH_URL "https://api.github.com/repos/OldUnreal/Unreal-testing/releases/tags/v227k_12"
 !define NOTICE_FILE "UNOTICE.txt"
 !define ADD_SIZE_KB 1468006

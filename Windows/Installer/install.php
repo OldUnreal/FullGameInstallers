@@ -29,7 +29,7 @@ $setup = array(
 	'ut2004' => array(
 		'iso' => array(
 			'https://files.oldunreal.net/UT2004.ISO' => '2995322880_4ad34b16d757e0752809eb9bf5fb1fba',
-			'https://archive.org/download/ut-2004/UT2004.ISO' => '3751510016_7841d8750e3f51aeac7bbb0448667670',
+			"https://archive.org/download/unreal-pc-redump/UNREAL-PC-REDUMP/Unreal Tournament 2004 (USA) (Editor's Choice and Mega Bonus Pack).zip" => '2978714427_ecf39948085748697cd06d75b2850c65',
 		),
 		'patch' => 'https://api.github.com/repos/OldUnreal/UT2004Patches/releases/latest',
 		'exe' => 'UT2004.exe',
@@ -109,6 +109,7 @@ if (!$cd_drive) {
 
 	$iso_name = false;
 	$iso_path = null;
+	$iso_zip_path = null;
 	$iso_external = false;
 	$hashes = array();
 	$installer_exedir = '';
@@ -257,6 +258,12 @@ $cmd_7z = 'tools\7z.exe x -aoa -o.. -bsp1 ';
 if (!$cd_drive) {
 	title('Unpacking game ISO...');
 
+	if (pathinfo($iso_path, PATHINFO_EXTENSION) == 'zip') {
+		$iso_zip_path = $iso_path;
+		run('tools\7z.exe e -aoa -o. -bsp1 '.escapeshellarg($iso_path));
+		$iso_path = strtr(basename($iso_path), array('.zip' => '.iso'));
+	}
+
 	if ($game == 'ut2004') {
 		run('tools\7z.exe e -aoa -ocabs -bsp1 -ir!*.cab -ir!*.hdr '.escapeshellarg($iso_path));
 
@@ -376,6 +383,13 @@ if ($game == 'ut99') {
 }
 
 title('Remove downloaded files...');
+
+if ($iso_zip_path) {
+	if (is_file($iso_path)) {
+		unlink($iso_path);
+	}
+	$iso_path = $iso_zip_path;
+}
 
 if (!$keep_files) {
 	unlink(basename($config['patch']));
