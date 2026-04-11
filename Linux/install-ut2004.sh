@@ -622,7 +622,8 @@ installer::entrypoint() {
   # shellcheck shell=bash
 
   # Downloader
-  local DOWNLOADER_TIMEOUT=15
+  local DOWNLOADER_CONNECTION_TIMEOUT=15 # seconds
+  local DOWNLOADER_OPERATION_TIMEOUT=900 # seconds
   local DOWNLOADER_API_BIN=""
   local DOWNLOADER_API_TYPE=""
 
@@ -699,7 +700,8 @@ installer::entrypoint() {
       fi
 
       "${DOWNLOADER_API_BIN}" -Ls "${ADDITIONAL_ARGS[@]}" \
-        --compressed --connect-timeout "${DOWNLOADER_TIMEOUT}" \
+        --compressed --connect-timeout "${DOWNLOADER_CONNECTION_TIMEOUT}" \
+        --max-time "${DOWNLOADER_OPERATION_TIMEOUT}" \
         --user-agent "${DOWNLOADER_USER_AGENT}" \
         "${ENDPOINT_URL}" 2>/dev/null
     elif [[ "${DOWNLOADER_API_TYPE}" == "wget" ]] || [[ "${DOWNLOADER_API_TYPE}" == "wget2" ]]; then
@@ -710,7 +712,8 @@ installer::entrypoint() {
       fi
 
       "${DOWNLOADER_API_BIN}" -q "${ADDITIONAL_ARGS[@]}" \
-        --timeout="${DOWNLOADER_TIMEOUT}" \
+        --connect-timeout="${DOWNLOADER_CONNECTION_TIMEOUT}" \
+        --timeout="${DOWNLOADER_OPERATION_TIMEOUT}" \
         --user-agent="${DOWNLOADER_USER_AGENT}" \
         "${ENDPOINT_URL}" -O - -o /dev/null 2>/dev/null
     fi
@@ -945,7 +948,8 @@ installer::entrypoint() {
       stdbuf -o0 -- "${DOWNLOADER_DL_BIN}" --no-conf=true --allow-overwrite=true --remove-control-file=true \
         --daemon=false --enable-color=false --stop-with-process="$$" \
         --truncate-console-readout=false --console-log-level=warn --summary-interval=0 \
-        --connect-timeout="${DOWNLOADER_TIMEOUT}" \
+        --connect-timeout="${DOWNLOADER_CONNECTION_TIMEOUT}" \
+        --timeout="${DOWNLOADER_OPERATION_TIMEOUT}" \
         --user-agent="${DOWNLOADER_USER_AGENT}" \
         --dir="${ARIA2C_DOWNLOAD_DIRECTORY}" --out="${ARIA2C_DOWNLOAD_FILE}" \
         "${ADDITIONAL_ARGS[@]}" \
@@ -966,7 +970,8 @@ installer::entrypoint() {
       fi
 
       "${DOWNLOADER_DL_BIN}" -LN --progress-meter "${ADDITIONAL_ARGS[@]}" \
-        --connect-timeout "${DOWNLOADER_TIMEOUT}" \
+        --connect-timeout "${DOWNLOADER_CONNECTION_TIMEOUT}" \
+        --max-time "${DOWNLOADER_OPERATION_TIMEOUT}" \
         --user-agent "${DOWNLOADER_USER_AGENT}" \
         "${DOWNLOAD_URL}" -o "${DOWNLOAD_PATH}" 2>&1 |
         stdbuf -oL -- tr $'\r' $'\n' |
@@ -987,7 +992,8 @@ installer::entrypoint() {
       fi
 
       "${DOWNLOADER_DL_BIN}" --progress=dot "${ADDITIONAL_ARGS[@]}" \
-        --timeout="${DOWNLOADER_TIMEOUT}" \
+        --connect-timeout="${DOWNLOADER_CONNECTION_TIMEOUT}" \
+        --timeout="${DOWNLOADER_OPERATION_TIMEOUT}" \
         --user-agent="${DOWNLOADER_USER_AGENT}" \
         "${DOWNLOAD_URL}" -O "${DOWNLOAD_PATH}" -o - 2>&1 |
         while IFS= read -r TRANSFER_PROGRESS; do
@@ -1007,7 +1013,7 @@ installer::entrypoint() {
       fi
 
       "${DOWNLOADER_DL_BIN}" --progress=bar --force-progress "${ADDITIONAL_ARGS[@]}" \
-        --timeout="${DOWNLOADER_TIMEOUT}" \
+        --timeout="${DOWNLOADER_CONNECTION_TIMEOUT}" \
         --user-agent="${DOWNLOADER_USER_AGENT}" \
         "${DOWNLOAD_URL}" -O "${DOWNLOAD_PATH}" 2>&1 |
         stdbuf -oL -- tr $'\r\033' $'\n\n' |
