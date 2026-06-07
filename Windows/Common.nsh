@@ -204,7 +204,8 @@ Section "Install the uninstaller" SecUninstaller
 	WriteUninstaller "${UNINST_EXE}"
 	
 	WriteRegStr HKLM "${UNINSTALLER_KEY}" "DisplayName" "${GAME_NAME}"
-	WriteRegStr HKLM "${UNINSTALLER_KEY}" "UninstallString" "${UNINST_EXE}"
+	WriteRegStr HKCU "${UNINSTALLER_KEY}" "UninstallString" '"${UNINST_EXE}"'
+	WriteRegStr HKCU "${UNINSTALLER_KEY}" "QuietUninstallString" '"${UNINST_EXE}" /S'
 	WriteRegStr HKLM "${UNINSTALLER_KEY}" "DisplayIcon" "$INSTDIR\System\${GAME_EXE}"
 	WriteRegStr HKLM "${UNINSTALLER_KEY}" "Publisher" "Epic Games"
 	WriteRegStr HKLM "${UNINSTALLER_KEY}" "DisplayVersion" "OldUnreal Edition"
@@ -212,6 +213,7 @@ Section "Install the uninstaller" SecUninstaller
 	WriteINIStr "${UNINST_INI}" "Uninstall" "DesktopLinks" "$DesktopLinks"
 	WriteINIStr "${UNINST_INI}" "Uninstall" "StartMenuLinks" "$StartMenuLinks"
 	WriteRegDWORD HKLM "${UNINSTALLER_KEY}" "NoModify" 1
+	WriteRegDWORD HKLM "${UNINSTALLER_KEY}" "NoRepair" 1
 SectionEnd
 
 Section "Register the game as the handler for the ${PROTOCOL}:// protocol"
@@ -957,7 +959,7 @@ FunctionEnd
 ; The uninstaller section
 Section Uninstall
 	; Ask for confirmation before proceeding
-	MessageBox MB_YESNO|MB_ICONQUESTION "Are you sure you want to completely remove ${GAME_NAME}?$\r$\n$\r$\nAll files and registry entries will be removed.$\r$\n$\r$\nThis includes all content in the game folder, including custom files such as maps, textures, mods, mutators, save games, demo files, etc." IDYES remove
+	MessageBox MB_YESNO|MB_ICONQUESTION "Are you sure you want to completely remove ${GAME_NAME}?$\r$\n$\r$\nAll files and registry entries will be removed.$\r$\n$\r$\nThis includes all content in the game folder, including custom files such as maps, textures, mods, mutators, save games, demo files, etc." /SD IDYES IDYES remove
 	
 	DetailPrint "User canceled the uninstallation process."
 	Abort "User canceled the uninstallation process."
