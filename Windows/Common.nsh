@@ -204,8 +204,8 @@ Section "Install the uninstaller" SecUninstaller
 	WriteUninstaller "${UNINST_EXE}"
 	
 	WriteRegStr HKLM "${UNINSTALLER_KEY}" "DisplayName" "${GAME_NAME}"
-	WriteRegStr HKCU "${UNINSTALLER_KEY}" "UninstallString" '"${UNINST_EXE}"'
-	WriteRegStr HKCU "${UNINSTALLER_KEY}" "QuietUninstallString" '"${UNINST_EXE}" /S'
+	WriteRegStr HKLM "${UNINSTALLER_KEY}" "UninstallString" '"${UNINST_EXE}"'
+	WriteRegStr HKLM "${UNINSTALLER_KEY}" "QuietUninstallString" '"${UNINST_EXE}" /S'
 	WriteRegStr HKLM "${UNINSTALLER_KEY}" "DisplayIcon" "$INSTDIR\System\${GAME_EXE}"
 	WriteRegStr HKLM "${UNINSTALLER_KEY}" "Publisher" "Epic Games"
 	WriteRegStr HKLM "${UNINSTALLER_KEY}" "DisplayVersion" "OldUnreal Edition"
