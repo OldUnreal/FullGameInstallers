@@ -172,6 +172,8 @@ FunctionEnd
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
 
+!insertmacro MUI_UNPAGE_INSTFILES
+
 !insertmacro MUI_LANGUAGE "English"
 
 LicenseData "${NOTICE_FILE}"
