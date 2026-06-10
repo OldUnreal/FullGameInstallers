@@ -191,7 +191,7 @@ Section
 	!endif
 SectionEnd
 
-Section "Create shortcuts on the Desktop"
+Section /o "Create shortcuts on the Desktop"
 	StrCpy $DesktopLinks "1"
 SectionEnd
 
