@@ -358,7 +358,7 @@ __downloader::download_file_with_progress() {
   elif [[ "${DOWNLOADER_DL_TYPE}" == "wget" ]]; then
     local WGET_LENGTH_CAPTURE_REGEX='^Length:\s+[0-9]+\s+\((.*)\).*$'
     local WGET_CAPTURE_REGEX='^\s*([0-9.]+[BKMG])\s+[. ]+\s+([0-9]+)%\s+([0-9.]+[BKMG])\s+.*$'
-    local TOTAL_SIZE
+    local TOTAL_SIZE=""
     local ADDITIONAL_ARGS=()
 
     if [[ "${IS_SPECIAL_URL}" == "github.com" ]] && [[ -n "${RESOLVED_GITHUB_TOKEN}" ]]; then
