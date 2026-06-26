@@ -13,7 +13,7 @@
 # ARG_OPTIONAL_BOOLEAN([unrealed],[e],[Install UnrealEd (Windows, umu-launcher recommended).],[])
 # ARG_OPTIONAL_BOOLEAN([keep-installer-files],[k],[Keep ISO and Patch files.],[])
 # ARG_HELP([Install Unreal Tournament 2004])
-# ARG_VERSION_AUTO([1.2.1],['OldUnreal <https://oldunreal.com>'])
+# ARG_VERSION_AUTO([1.2.2],['OldUnreal <https://oldunreal.com>'])
 # DEFINE_SCRIPT_DIR([_SCRIPT_DIR])
 # ARGBASH_GO()
 # needed because of Argbash --> m4_ignore([
@@ -144,11 +144,11 @@ parse_commandline() {
       exit 0
       ;;
     -v | --version)
-      printf '%s %s\n\n%s\n%s\n' "install-ut2004.sh" "1.2.1" 'Install Unreal Tournament 2004' 'OldUnreal <https://oldunreal.com>'
+      printf '%s %s\n\n%s\n%s\n' "install-ut2004.sh" "1.2.2" 'Install Unreal Tournament 2004' 'OldUnreal <https://oldunreal.com>'
       exit 0
       ;;
     -v*)
-      printf '%s %s\n\n%s\n%s\n' "install-ut2004.sh" "1.2.1" 'Install Unreal Tournament 2004' 'OldUnreal <https://oldunreal.com>'
+      printf '%s %s\n\n%s\n%s\n' "install-ut2004.sh" "1.2.2" 'Install Unreal Tournament 2004' 'OldUnreal <https://oldunreal.com>'
       exit 0
       ;;
     *)
@@ -979,7 +979,7 @@ installer::entrypoint() {
     elif [[ "${DOWNLOADER_DL_TYPE}" == "wget" ]]; then
       local WGET_LENGTH_CAPTURE_REGEX='^Length:\s+[0-9]+\s+\((.*)\).*$'
       local WGET_CAPTURE_REGEX='^\s*([0-9.]+[BKMG])\s+[. ]+\s+([0-9]+)%\s+([0-9.]+[BKMG])\s+.*$'
-      local TOTAL_SIZE
+      local TOTAL_SIZE=""
       local ADDITIONAL_ARGS=()
 
       if [[ "${IS_SPECIAL_URL}" == "github.com" ]] && [[ -n "${RESOLVED_GITHUB_TOKEN}" ]]; then
