@@ -2226,6 +2226,11 @@ You may read the Terms of Service at this URL:
       ln -s "${SYSTEM_PROVIDED_LIBOMP_PATH}" "${SYSTEM_FOLDER}/libomp.so.5"
     fi
 
+    # fix form ARM64 error: Packages.md5 missing
+    if [[ "${ARCHITECTURE_SUFFIX}" == 'arm64' ]]; then
+      cp -f "${SYSTEM_FOLDER}${UE_SYSTEM_FOLDER_SUFFIX}/*" "${SYSTEM_FOLDER}/"
+    fi
+
     step::ut2004_special_fixes::replace_line_in_file "${HOME}/.ut2004/System/UT2004.ini" "MainMenuClass=GUI2K4.UT2K4MainMenu" "MainMenuClass=GUI2K4.UT2K4MainMenuWS"
     step::ut2004_special_fixes::replace_line_in_file "${SYSTEM_FOLDER}/UT2004.ini" "MainMenuClass=GUI2K4.UT2K4MainMenu" "MainMenuClass=GUI2K4.UT2K4MainMenuWS"
 
