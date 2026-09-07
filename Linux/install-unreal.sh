@@ -632,7 +632,7 @@ installer::entrypoint() {
   # For archive.org links, aria2c will be instructed to open multiple connections at the same time
   local ARIA2C_ARCHIVEORG_CONNECTIONS="${OLDUNREAL_ARCHIVEORG_ARIA2C_CONNECTIONS:-4}"
 
-  # Check which command should be used for API calls
+  # Check which command should be used for API calls (preferably curl, then wget, then wget2)
   if command -v "curl" &>/dev/null; then
     DOWNLOADER_API_BIN="curl"
     DOWNLOADER_API_TYPE="curl"
@@ -649,13 +649,26 @@ installer::entrypoint() {
     DOWNLOADER_API_TYPE="wget2"
   fi
 
-  # Check which command should be used for downloads
+  # Check which command should be used for downloads (preferably aria2c, then wget, then wget2, then curl)
   if command -v "aria2c" &>/dev/null; then
     DOWNLOADER_DL_BIN="aria2c"
     DOWNLOADER_DL_TYPE="aria2c"
-  else
-    DOWNLOADER_DL_BIN="${DOWNLOADER_API_BIN}"
-    DOWNLOADER_DL_TYPE="${DOWNLOADER_API_TYPE}"
+  elif command -v "wget" &>/dev/null; then
+    DOWNLOADER_DL_BIN="wget"
+    DOWNLOADER_DL_TYPE="wget"
+
+    # Check if provided wget version is Wget2... Thanks Fedora :(
+    if [[ "$(wget --version)" =~ " Wget2 " ]]; then
+      DOWNLOADER_DL_TYPE="wget2"
+    fi
+  elif command -v "wget2" &>/dev/null; then
+    DOWNLOADER_DL_BIN="wget2"
+    DOWNLOADER_DL_TYPE="wget2"
+  elif command -v "curl" &>/dev/null; then
+    # curl is to be used as last resort, as it doesn't provide a way to resume downloads on retries
+    # https://curl.se/docs/todo.html#--retry-should-resume
+    DOWNLOADER_DL_BIN="curl"
+    DOWNLOADER_DL_TYPE="curl"
   fi
 
   downloader::download_file() {
