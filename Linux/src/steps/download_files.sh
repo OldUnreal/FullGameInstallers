@@ -61,7 +61,7 @@ step::download_files() {
 
         if [[ "${IS_DOWNLOAD_SKIPPED}" == "yes" ]]; then
           if [[ "${POSSIBLE_EXISTING_FILE}" != "${DOWNLOAD_PATH}" ]]; then
-            ln -s "${POSSIBLE_EXISTING_FILE}" "${DOWNLOAD_PATH}"
+            ln -fs "${POSSIBLE_EXISTING_FILE}" "${DOWNLOAD_PATH}"
           fi
           break
         fi
