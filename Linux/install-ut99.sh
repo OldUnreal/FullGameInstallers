@@ -1967,6 +1967,12 @@ You may read the Terms of Service at this URL:
   fi
   step::unarchive_generic "Latest Patch" "${_arg_destination%/}/Installer/${DOWNLOADS_FILENAME_LIST[patch_linux]}" "${_arg_destination%/}"
 
+  # Recent Linux patches place the native binaries in System rather than System64.
+  if [[ ! -x "${_arg_destination%/}/System${UE_SYSTEM_FOLDER_SUFFIX:-}/ucc-bin${ARCHITECTURE_BINARY_SUFFIX}" ]] &&
+    [[ -x "${_arg_destination%/}/System/ucc-bin${ARCHITECTURE_BINARY_SUFFIX}" ]]; then
+    UE_SYSTEM_FOLDER_SUFFIX=''
+  fi
+
   # shellcheck shell=bash
 
   step::unpack_uz_maps() {
