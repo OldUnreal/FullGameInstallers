@@ -13,7 +13,7 @@
 # ARG_OPTIONAL_BOOLEAN([unrealed],[e],[Install UnrealEd (Windows, umu-launcher recommended).],[])
 # ARG_OPTIONAL_BOOLEAN([keep-installer-files],[k],[Keep ISO and Patch files.],[])
 # ARG_HELP([Install Unreal Tournament: GOTY])
-# ARG_VERSION_AUTO([1.3.0],['OldUnreal <https://oldunreal.com>'])
+# ARG_VERSION_AUTO([1.3.1],['OldUnreal <https://oldunreal.com>'])
 # DEFINE_SCRIPT_DIR([_SCRIPT_DIR])
 # ARGBASH_GO()
 # needed because of Argbash --> m4_ignore([
@@ -144,11 +144,11 @@ parse_commandline() {
       exit 0
       ;;
     -v | --version)
-      printf '%s %s\n\n%s\n%s\n' "install-ut99.sh" "1.3.0" 'Install Unreal Tournament: GOTY' 'OldUnreal <https://oldunreal.com>'
+      printf '%s %s\n\n%s\n%s\n' "install-ut99.sh" "1.3.1" 'Install Unreal Tournament: GOTY' 'OldUnreal <https://oldunreal.com>'
       exit 0
       ;;
     -v*)
-      printf '%s %s\n\n%s\n%s\n' "install-ut99.sh" "1.3.0" 'Install Unreal Tournament: GOTY' 'OldUnreal <https://oldunreal.com>'
+      printf '%s %s\n\n%s\n%s\n' "install-ut99.sh" "1.3.1" 'Install Unreal Tournament: GOTY' 'OldUnreal <https://oldunreal.com>'
       exit 0
       ;;
     *)
@@ -547,7 +547,7 @@ installer::entrypoint() {
     UnrealTournament)
       ARCHITECTURE_SUFFIX='amd64'
       ARCHITECTURE_BINARY_SUFFIX='-amd64'
-      UE_SYSTEM_FOLDER_SUFFIX='64'
+      UE_SYSTEM_FOLDER_SUFFIX=''
       UEED_SYSTEM_FOLDER_SUFFIX=''
       ;;
     *)
@@ -569,7 +569,7 @@ installer::entrypoint() {
     UnrealTournament)
       ARCHITECTURE_SUFFIX='arm64'
       ARCHITECTURE_BINARY_SUFFIX='-arm64'
-      UE_SYSTEM_FOLDER_SUFFIX='ARM64'
+      UE_SYSTEM_FOLDER_SUFFIX=''
       UEED_SYSTEM_FOLDER_SUFFIX=''
       ;;
     *)
@@ -2100,6 +2100,39 @@ You may read the Terms of Service at this URL:
         return 77 #E_PERM
       }
     fi
+
+    # Migrate old Architecture Specific Folders from old patches to the regular System folder
+    UE_OLD_SYSTEM_SUFFIXES=(64 ARM64)
+    for UE_OLD_SYSTEM_SUFFIX in "${UE_OLD_SYSTEM_SUFFIXES[@]}"; do
+      if [[ ! -d "${_arg_destination%/}/System${UE_OLD_SYSTEM_SUFFIX}" ]]; then
+        continue
+      fi
+
+      # Iterate through all files (ignoring subfolders)
+      for OLD_SYS_FILE in "${_arg_destination%/}/System${UE_OLD_SYSTEM_SUFFIX}"/*; do
+        # If it isn't a regular file, ignore
+        if [[ ! -f "${OLD_SYS_FILE}" ]]; then
+          continue
+        fi
+
+        OLD_SYS_BASENAME="${OLD_SYS_FILE##*/}"
+
+        # If the file already exists in the main System folder, we don't want to overwrite it
+        if [[ -f "${_arg_destination%/}/System/${OLD_SYS_BASENAME}" ]]; then
+          continue
+        fi
+
+        mv -f "${OLD_SYS_FILE}" "${_arg_destination%/}/System/${OLD_SYS_BASENAME}" || {
+          term::step::failed_with_error "Failed to move ${OLD_SYS_BASENAME} from System${UE_OLD_SYSTEM_SUFFIX} to System. Aborting installation."
+          return 77 #E_PERM
+        }
+      done
+
+      rm -rf "${_arg_destination%/}/System${UE_OLD_SYSTEM_SUFFIX}" || {
+        term::step::failed_with_error "Failed to remove System${UE_OLD_SYSTEM_SUFFIX} folder. Aborting installation."
+        return 77 #E_PERM
+      }
+    done
 
     term::step::complete
   }

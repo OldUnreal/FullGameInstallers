@@ -13,7 +13,7 @@
 # ARG_OPTIONAL_BOOLEAN([unrealed],[e],[Install UnrealEd (Windows, umu-launcher recommended).],[])
 # ARG_OPTIONAL_BOOLEAN([keep-installer-files],[k],[Keep ISO and Patch files.],[])
 # ARG_HELP([Install Unreal Gold])
-# ARG_VERSION_AUTO([1.3.0],['OldUnreal <https://oldunreal.com>'])
+# ARG_VERSION_AUTO([1.3.1],['OldUnreal <https://oldunreal.com>'])
 # DEFINE_SCRIPT_DIR([_SCRIPT_DIR])
 # ARGBASH_GO()
 # needed because of Argbash --> m4_ignore([
@@ -144,11 +144,11 @@ parse_commandline() {
       exit 0
       ;;
     -v | --version)
-      printf '%s %s\n\n%s\n%s\n' "install-unreal.sh" "1.3.0" 'Install Unreal Gold' 'OldUnreal <https://oldunreal.com>'
+      printf '%s %s\n\n%s\n%s\n' "install-unreal.sh" "1.3.1" 'Install Unreal Gold' 'OldUnreal <https://oldunreal.com>'
       exit 0
       ;;
     -v*)
-      printf '%s %s\n\n%s\n%s\n' "install-unreal.sh" "1.3.0" 'Install Unreal Gold' 'OldUnreal <https://oldunreal.com>'
+      printf '%s %s\n\n%s\n%s\n' "install-unreal.sh" "1.3.1" 'Install Unreal Gold' 'OldUnreal <https://oldunreal.com>'
       exit 0
       ;;
     *)
@@ -545,7 +545,7 @@ installer::entrypoint() {
     UnrealTournament)
       ARCHITECTURE_SUFFIX='amd64'
       ARCHITECTURE_BINARY_SUFFIX='-amd64'
-      UE_SYSTEM_FOLDER_SUFFIX='64'
+      UE_SYSTEM_FOLDER_SUFFIX=''
       UEED_SYSTEM_FOLDER_SUFFIX=''
       ;;
     *)
@@ -567,7 +567,7 @@ installer::entrypoint() {
     UnrealTournament)
       ARCHITECTURE_SUFFIX='arm64'
       ARCHITECTURE_BINARY_SUFFIX='-arm64'
-      UE_SYSTEM_FOLDER_SUFFIX='ARM64'
+      UE_SYSTEM_FOLDER_SUFFIX=''
       UEED_SYSTEM_FOLDER_SUFFIX=''
       ;;
     *)
