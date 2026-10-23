@@ -73,6 +73,10 @@ step::download_files() {
       continue
     fi
 
-    downloader::download_file "${DOWNLOAD_URL_SETS}" "${DOWNLOAD_PATH}"
+    downloader::download_file "${DOWNLOAD_URL_SETS}" "${DOWNLOAD_PATH}" || {
+      echo
+      term::error_with_dialog "Failed to download ${DOWNLOAD_FILENAME} from all available sources. Installation aborted."
+      return 1
+    }
   done
 }

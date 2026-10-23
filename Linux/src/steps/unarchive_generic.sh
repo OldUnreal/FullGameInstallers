@@ -19,5 +19,9 @@ step::unarchive_generic() {
     }
   fi
 
-  unarchiver::unarchive_file "${ITEM_NAME}" "${ARCHIVE_PATH}" "${TARGET_PATH}" "${IGNORE_PATTERNS_VAR_NAME}" "${IGNORE_PATTERNS_RECURSIVE_VAR_NAME}"
+  unarchiver::unarchive_file "${ITEM_NAME}" "${ARCHIVE_PATH}" "${TARGET_PATH}" "${IGNORE_PATTERNS_VAR_NAME}" "${IGNORE_PATTERNS_RECURSIVE_VAR_NAME}" || {
+    echo
+    term::error_with_dialog "Failed to extract ${ITEM_NAME}. Installation aborted."
+    return 1
+  }
 }
