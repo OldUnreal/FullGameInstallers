@@ -2619,7 +2619,7 @@ unrealed::launcher() {
     fi
 
     cd "${OU_INSTALL_PATH}"
-    STEAM_COMPAT_CLIENT_INSTALL_PATH="${STEAM_COMPAT_CLIENT_INSTALL_PATH:-~/.steam/steam}" \
+    STEAM_COMPAT_CLIENT_INSTALL_PATH="${STEAM_COMPAT_CLIENT_INSTALL_PATH:-${HOME}/.steam/steam}" \
       STEAM_COMPAT_DATA_PATH="${PREFERRED_WINEPREFIX}" \
       exec "${_arg_proton}" run "${_SCRIPT_DIR}/UnrealEd.exe"
   elif [[ "${_arg_mode}" == "wine" ]]; then
