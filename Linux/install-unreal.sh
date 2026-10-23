@@ -2574,6 +2574,8 @@ EOFLAUNCHER
       echo "Type=Application"
       echo "Categories=Game;"
     } >"${DESKTOP_ENTRY_PATH}"
+
+    __step::xdg_desktop_entry::mark_trusted "${DESKTOP_ENTRY_PATH}"
   }
 
   __step::xdg_desktop_entry::unrealed::create() {
@@ -2605,6 +2607,19 @@ EOFLAUNCHER
       echo "Type=Application"
       echo "Categories=Game;"
     } >"${DESKTOP_ENTRY_PATH}"
+
+    __step::xdg_desktop_entry::mark_trusted "${DESKTOP_ENTRY_PATH}"
+  }
+
+  # Desktop environments (KDE, GNOME) refuse to launch .desktop files on the desktop unless they are executable/trusted
+  __step::xdg_desktop_entry::mark_trusted() {
+    local DESKTOP_ENTRY_PATH="${1:-}"
+
+    chmod +x "${DESKTOP_ENTRY_PATH}" || return 1
+
+    if command -v gio &>/dev/null; then
+      gio set "${DESKTOP_ENTRY_PATH}" metadata::trusted true &>/dev/null || true
+    fi
   }
 
   # Automatically create png files from .ico for DEs that don't support Windows icons
