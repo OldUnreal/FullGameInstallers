@@ -126,22 +126,42 @@ step::ut2004_special_fixes::find_library() {
   fi
 
   if [[ -n "${LDCONFIG_BIN}" ]]; then
-    local LIB_PATH
-    LIB_PATH=$( ("${LDCONFIG_BIN}" -p | grep -F "${LIBRARY_NAME}" | head -n 1) || true)
+    # On multilib systems, ldconfig lists libraries for every architecture, so only accept
+    # the ones matching the architecture we are installing for
+    local LDCONFIG_ABI_TAG=""
+    case "${DETECTED_ARCHITECTURE}" in
+    x86_64 | amd64)
+      LDCONFIG_ABI_TAG="x86-64"
+      ;;
+    aarch64)
+      LDCONFIG_ABI_TAG="AArch64"
+      ;;
+    ppc64le)
+      LDCONFIG_ABI_TAG="64bit"
+      ;;
+    esac
 
-    if [ -z "${LIB_PATH}" ]; then
-      return 0
-    fi
+    # Format: <tab>libname.so.1 (libc6,x86-64) => /usr/lib/libname.so.1
+    local LDCONFIG_LINE_REGEX='^[[:space:]]*([^[:space:]]+)[[:space:]]+\(([^)]*)\)[[:space:]]+=>[[:space:]]+(.+)$'
+    local LDCONFIG_LINE
+    while IFS= read -r LDCONFIG_LINE; do
+      if [[ ! "${LDCONFIG_LINE}" =~ ${LDCONFIG_LINE_REGEX} ]]; then
+        continue
+      fi
 
-    LIB_PATH="${LIB_PATH##*=>}"
+      if [[ "${BASH_REMATCH[1]}" != "${LIBRARY_NAME}" ]]; then
+        continue
+      fi
 
-    shopt -s extglob
-    LIB_PATH="${LIB_PATH##+([[:space:]])}"
-    shopt -u extglob
+      if [[ -n "${LDCONFIG_ABI_TAG}" ]] && [[ ",${BASH_REMATCH[2]}," != *",${LDCONFIG_ABI_TAG},"* ]]; then
+        continue
+      fi
 
-    if [ -f "${LIB_PATH}" ]; then
-      echo "${LIB_PATH}"
-    fi
+      if [[ -f "${BASH_REMATCH[3]}" ]]; then
+        echo "${BASH_REMATCH[3]}"
+        return 0
+      fi
+    done < <("${LDCONFIG_BIN}" -p 2>/dev/null || true)
 
     return 0
   fi
