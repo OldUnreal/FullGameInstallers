@@ -2309,13 +2309,23 @@ You may read the Terms of Service at this URL:
 
     local IS_CONTENT_FOUND="no"
 
+    local LINE_SEPARATOR=""
+
     while IFS= read -r FILE_LINE; do
-      if [[ "${FILE_LINE}" == "${LINE_TO_REPLACE}" ]]; then
-        IS_CONTENT_FOUND="yes"
-        FILE_NEW_CONTENTS="${FILE_NEW_CONTENTS}"$'\n'"${REPLACEMENT_LINE}"
-      else
-        FILE_NEW_CONTENTS="${FILE_NEW_CONTENTS}"$'\n'"${FILE_LINE}"
+      # Ini files may use Windows line endings, preserve them
+      local LINE_ENDING=""
+      if [[ "${FILE_LINE}" == *$'\r' ]]; then
+        LINE_ENDING=$'\r'
       fi
+
+      if [[ "${FILE_LINE%$'\r'}" == "${LINE_TO_REPLACE}" ]]; then
+        IS_CONTENT_FOUND="yes"
+        FILE_NEW_CONTENTS="${FILE_NEW_CONTENTS}${LINE_SEPARATOR}${REPLACEMENT_LINE}${LINE_ENDING}"
+      else
+        FILE_NEW_CONTENTS="${FILE_NEW_CONTENTS}${LINE_SEPARATOR}${FILE_LINE}"
+      fi
+
+      LINE_SEPARATOR=$'\n'
     done <<<"${FILE_CONTENTS}"
 
     if [[ "${IS_CONTENT_FOUND}" == "yes" ]]; then
