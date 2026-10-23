@@ -147,7 +147,7 @@ unrealed::launcher() {
   )
 
   ansi::styled() {
-    ALLOW_ESCAPES="off"
+    local ALLOW_ESCAPES="off"
     if [[ "${1:-}" == "-e" ]]; then
       ALLOW_ESCAPES="on"
       shift

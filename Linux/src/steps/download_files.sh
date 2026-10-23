@@ -8,7 +8,7 @@ step::download_files() {
     local DOWNLOAD_FILENAME="${DOWNLOADS_FILENAME_LIST[${DOWNLOAD_SOURCE_KEY}]}"
     local IS_DOWNLOAD_SKIPPED="no"
 
-    DOWNLOAD_PATH="${_arg_destination%/}/Installer/${DOWNLOAD_FILENAME}"
+    local DOWNLOAD_PATH="${_arg_destination%/}/Installer/${DOWNLOAD_FILENAME}"
 
     local TARGET_STEP_NAME="Download ${DOWNLOAD_FILENAME}"
 
@@ -20,6 +20,7 @@ step::download_files() {
 
     term::step::new "${TARGET_STEP_NAME}"
 
+    local POSSIBLE_EXISTING_FILE
     for POSSIBLE_EXISTING_FILE in "${POSSIBLE_EXISTING_FILES_TO_CHECK[@]}"; do
       # If the file exist and isn't a partial download
       if [[ -f "${POSSIBLE_EXISTING_FILE}" ]] && [[ ! -f "${POSSIBLE_EXISTING_FILE}.aria2" ]]; then
@@ -28,6 +29,7 @@ step::download_files() {
         EXISTING_HASH=$(helper::progress::run_with_progress "Verifying existing file" downloader::compute_sha256sum "${POSSIBLE_EXISTING_FILE}")
 
         local REMAINING_DOWNLOAD_URL_SETS="${DOWNLOAD_URL_SETS}"
+        local CURRENT_DOWNLOAD_URL_SET
         while true; do
           # We looped through all the possible values, we can break out
           if [[ -z "${REMAINING_DOWNLOAD_URL_SETS}" ]]; then

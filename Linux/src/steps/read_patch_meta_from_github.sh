@@ -76,7 +76,7 @@ step::read_patch_meta_from_github() {
     return 1
   fi
 
-  PATCH_FILENAME="${PATCH_DOWNLOAD_URL##*/}"
+  local PATCH_FILENAME="${PATCH_DOWNLOAD_URL##*/}"
   PATCH_FILENAME="${PATCH_FILENAME%%\?*}"
 
   local PATCH_DOWNLOAD_SIZE

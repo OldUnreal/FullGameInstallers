@@ -21,6 +21,8 @@ You can launch the game by running:
   ${DESTINATION_HOMIFIED}/System${UE_SYSTEM_FOLDER_SUFFIX:-}/${MAIN_BINARY_NAME}${ARCHITECTURE_BINARY_SUFFIX}
 """
 
+  local DIALOG_ARGS=()
+
   if [[ "${_arg_ui_mode:-none}" == "none" ]]; then
     return 0
   elif [[ "${_arg_ui_mode:-none}" == "kdialog" ]]; then

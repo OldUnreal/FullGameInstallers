@@ -12,7 +12,8 @@ step::ut99_special_fixes() {
   fi
 
   # Migrate old Architecture Specific Folders from old patches to the regular System folder
-  UE_OLD_SYSTEM_SUFFIXES=(64 ARM64)
+  local UE_OLD_SYSTEM_SUFFIXES=(64 ARM64)
+  local UE_OLD_SYSTEM_SUFFIX OLD_SYS_FILE OLD_SYS_BASENAME
   for UE_OLD_SYSTEM_SUFFIX in "${UE_OLD_SYSTEM_SUFFIXES[@]}"; do
     if [[ ! -d "${_arg_destination%/}/System${UE_OLD_SYSTEM_SUFFIX}" ]]; then
       continue
