@@ -199,6 +199,11 @@ term::step::failed_with_error() {
   term::step::failed
   echo
 
+  term::error_with_dialog "$*"
+}
+
+# Prints an error, and also displays it in a dialog when running in GUI mode
+term::error_with_dialog() {
   local ERROR_TEXT="$*"
 
   term::error "${ERROR_TEXT}" 1>&2

@@ -384,6 +384,11 @@ installer::entrypoint() {
     term::step::failed
     echo
 
+    term::error_with_dialog "$*"
+  }
+
+  # Prints an error, and also displays it in a dialog when running in GUI mode
+  term::error_with_dialog() {
     local ERROR_TEXT="$*"
 
     term::error "${ERROR_TEXT}" 1>&2
@@ -1948,7 +1953,11 @@ You may read the Terms of Service at this URL:
         continue
       fi
 
-      downloader::download_file "${DOWNLOAD_URL_SETS}" "${DOWNLOAD_PATH}"
+      downloader::download_file "${DOWNLOAD_URL_SETS}" "${DOWNLOAD_PATH}" || {
+        echo
+        term::error_with_dialog "Failed to download ${DOWNLOAD_FILENAME} from all available sources. Installation aborted."
+        return 1
+      }
     done
   }
   step::download_files
@@ -1974,7 +1983,11 @@ You may read the Terms of Service at this URL:
       }
     fi
 
-    unarchiver::unarchive_file "${ITEM_NAME}" "${ARCHIVE_PATH}" "${TARGET_PATH}" "${IGNORE_PATTERNS_VAR_NAME}" "${IGNORE_PATTERNS_RECURSIVE_VAR_NAME}"
+    unarchiver::unarchive_file "${ITEM_NAME}" "${ARCHIVE_PATH}" "${TARGET_PATH}" "${IGNORE_PATTERNS_VAR_NAME}" "${IGNORE_PATTERNS_RECURSIVE_VAR_NAME}" || {
+      echo
+      term::error_with_dialog "Failed to extract ${ITEM_NAME}. Installation aborted."
+      return 1
+    }
   }
   step::unarchive_generic "Game Files" "${_arg_destination%/}/Installer/${DOWNLOADS_FILENAME_LIST[game]}" "${_arg_destination%/}" "UNPACK_IGNORE_PATTERNS"
   step::unarchive_generic "Bonus Pack 4" "${_arg_destination%/}/Installer/${DOWNLOADS_FILENAME_LIST[bp4]}" "${_arg_destination%/}"
