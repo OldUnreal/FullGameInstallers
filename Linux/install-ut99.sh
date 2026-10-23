@@ -1038,9 +1038,9 @@ installer::entrypoint() {
   __downloader::identify_special_host() {
     local URL="${1:-}"
 
-    if [[ "${URL}" =~ ^https://(github\.com|.+\.github\.com|.+\.githubusercontent\.com)/ ]]; then
+    if [[ "${URL}" =~ ^https://(github\.com|[^/]+\.github\.com|[^/]+\.githubusercontent\.com)/ ]]; then
       echo "github.com"
-    elif [[ "${URL}" =~ ^https://(archive\.org|.+\.archive\.org)/ ]]; then
+    elif [[ "${URL}" =~ ^https://(archive\.org|[^/]+\.archive\.org)/ ]]; then
       echo "archive.org"
     fi
   }
