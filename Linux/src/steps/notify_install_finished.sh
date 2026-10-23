@@ -1,8 +1,9 @@
 # shellcheck shell=bash
 
 step::notify_install_finished() {
-  # Remove installation files
-  if [[ "${_arg_keep_installer_files:-off}" != "on" ]] && [[ -d "${_arg_destination%/}/Installer" ]]; then
+  # Remove installation files, only if the ./Installer folder was created by this installer
+  if [[ "${_arg_keep_installer_files:-off}" != "on" ]] &&
+    [[ -f "${_arg_destination%/}/Installer/${INSTALLER_FOLDER_MARKER_FILENAME}" ]]; then
     rm -rf "${_arg_destination%/}/Installer"
   fi
 

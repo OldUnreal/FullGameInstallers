@@ -1599,6 +1599,9 @@ installer::entrypoint() {
 
   local DESTINATION_HOMIFIED=""
 
+  # Marks the ./Installer folder as created by this installer, so it is safe to remove once done
+  local INSTALLER_FOLDER_MARKER_FILENAME=".oldunreal-installer"
+
   # shellcheck disable=SC2034 # Used in some installers
   local IS_DESTINATION_CASE_SENSITIVE_FS=""
 
@@ -1627,6 +1630,11 @@ installer::entrypoint() {
       # Create the installation folder
       mkdir -p "${_arg_destination%/}/Installer" &>/dev/null || {
         term::step::failed_with_error "User does not have permission to create destination folder. Aborting installation."
+        return 77 #E_PERM
+      }
+
+      touch "${_arg_destination%/}/Installer/${INSTALLER_FOLDER_MARKER_FILENAME}" &>/dev/null || {
+        term::step::failed_with_error "User does not have permission to write to the destination folder. Aborting installation."
         return 77 #E_PERM
       }
     fi
@@ -2656,8 +2664,9 @@ EOFLAUNCHER
   # shellcheck shell=bash
 
   step::notify_install_finished() {
-    # Remove installation files
-    if [[ "${_arg_keep_installer_files:-off}" != "on" ]] && [[ -d "${_arg_destination%/}/Installer" ]]; then
+    # Remove installation files, only if the ./Installer folder was created by this installer
+    if [[ "${_arg_keep_installer_files:-off}" != "on" ]] &&
+      [[ -f "${_arg_destination%/}/Installer/${INSTALLER_FOLDER_MARKER_FILENAME}" ]]; then
       rm -rf "${_arg_destination%/}/Installer"
     fi
 

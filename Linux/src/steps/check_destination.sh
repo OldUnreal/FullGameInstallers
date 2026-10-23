@@ -2,6 +2,9 @@
 
 local DESTINATION_HOMIFIED=""
 
+# Marks the ./Installer folder as created by this installer, so it is safe to remove once done
+local INSTALLER_FOLDER_MARKER_FILENAME=".oldunreal-installer"
+
 # shellcheck disable=SC2034 # Used in some installers
 local IS_DESTINATION_CASE_SENSITIVE_FS=""
 
@@ -30,6 +33,11 @@ step::check_destination() {
     # Create the installation folder
     mkdir -p "${_arg_destination%/}/Installer" &>/dev/null || {
       term::step::failed_with_error "User does not have permission to create destination folder. Aborting installation."
+      return 77 #E_PERM
+    }
+
+    touch "${_arg_destination%/}/Installer/${INSTALLER_FOLDER_MARKER_FILENAME}" &>/dev/null || {
+      term::step::failed_with_error "User does not have permission to write to the destination folder. Aborting installation."
       return 77 #E_PERM
     }
   fi
