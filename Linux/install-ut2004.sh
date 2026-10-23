@@ -1709,7 +1709,7 @@ You may read the Terms of Service at this URL:
       DIALOG_ARGS=(
         zenity
         --text-info
-        "Terms of Service"
+        "--title=Terms of Service"
         "--checkbox=I agree to Epic Games Terms of Service"
         --width=450
         --height=400
