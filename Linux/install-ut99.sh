@@ -1826,7 +1826,7 @@ You may read the Terms of Service at this URL:
       }
 
     local PATCH_DOWNLOAD_URL
-    { PATCH_DOWNLOAD_URL=$(echo "${PATCH_METADATA_JSON}" | jq -r "[ ${JQ_FILTER} ] | .[0].browser_download_url"); } ||
+    { PATCH_DOWNLOAD_URL=$(echo "${PATCH_METADATA_JSON}" | jq -r "[ ${JQ_FILTER} ] | .[0].browser_download_url // empty"); } ||
       {
         term::step::failed_with_error "Implementation error, step::read_patch_meta_from_github::metadata_filter runtime error."
         return 1
@@ -1841,7 +1841,7 @@ You may read the Terms of Service at this URL:
     PATCH_FILENAME="${PATCH_FILENAME%%\?*}"
 
     local PATCH_DOWNLOAD_SIZE
-    { PATCH_DOWNLOAD_SIZE=$(echo "${PATCH_METADATA_JSON}" | jq -r "[ ${JQ_FILTER} ] | .[0].size"); } ||
+    { PATCH_DOWNLOAD_SIZE=$(echo "${PATCH_METADATA_JSON}" | jq -r "[ ${JQ_FILTER} ] | .[0].size // empty"); } ||
       {
         term::step::failed_with_error "Couldn't determine patch size. Installation aborted."
         return 1
