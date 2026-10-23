@@ -2065,7 +2065,7 @@ You may read the Terms of Service at this URL:
       fi
     done | {
       if [[ "${_arg_ui_mode:-none}" == "zenity" ]]; then
-        zenity --progress --percentage=0 --text="Unpacking maps..." --no-cancel --time-remaining --auto-close 2>/dev/null
+        zenity --progress --percentage=0 --text="Unpacking install CABs..." --no-cancel --time-remaining --auto-close 2>/dev/null
       else
         cat - >/dev/null
       fi
