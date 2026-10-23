@@ -321,7 +321,7 @@ helper::run_as_proc_group() {
   wait "${PROC_SUB_PID}"
   local EXIT_CODE=$?
   trap - EXIT
-  return $?
+  return "${EXIT_CODE}"
 }
 
 helper::string::unshift::next_value() {
