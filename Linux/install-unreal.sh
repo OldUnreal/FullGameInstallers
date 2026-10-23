@@ -1516,10 +1516,16 @@ installer::entrypoint() {
       term::step::progress "unshield"
       if ! command -v "unshield" &>/dev/null; then
         # Can it be downloaded?
+        # Size and SHA-256 must be updated whenever the binaries in Linux/deps are rebuilt
         case "${ARCHITECTURE_SUFFIX}" in
-        amd64 | arm64)
+        amd64)
           # shellcheck disable=SC2034 # May not be used in all installers
-          DOWNLOADS_SOURCE_LIST[unshield]="https://raw.githubusercontent.com/OldUnreal/FullGameInstallers/master/Linux/deps/unshield-${ARCHITECTURE_SUFFIX}||"
+          DOWNLOADS_SOURCE_LIST[unshield]="https://raw.githubusercontent.com/OldUnreal/FullGameInstallers/master/Linux/deps/unshield-amd64|2674608|2c790958037538fd9dd31f41eebc2a0e0e6343ac8e4a1805b0176400b1d68332"
+          DOWNLOADS_FILENAME_LIST[unshield]="unshield"
+          ;;
+        arm64)
+          # shellcheck disable=SC2034 # May not be used in all installers
+          DOWNLOADS_SOURCE_LIST[unshield]="https://raw.githubusercontent.com/OldUnreal/FullGameInstallers/master/Linux/deps/unshield-arm64|2357728|51489f9768398f304e119ba36a8f1895d7e1b2bdd97bdf18c45600f69a6afd5f"
           DOWNLOADS_FILENAME_LIST[unshield]="unshield"
           ;;
         *)
