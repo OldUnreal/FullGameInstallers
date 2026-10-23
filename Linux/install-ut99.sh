@@ -1172,7 +1172,8 @@ installer::entrypoint() {
       return 0
     fi
 
-    local SEZENV_VERSION_REGEX='^7-Zip( \[[0-9a-zA-Z_-]\]+)? ([0-9]+)(\.([0-9]+)| |:)'
+    # Matches banners such as "7-Zip 25.01 (x64)", "7-Zip (z) 25.01 (x64)" and "7-Zip [64] 16.02"
+    local SEZENV_VERSION_REGEX='^7-Zip( \[[0-9a-zA-Z_-]+\]| \([0-9a-zA-Z_-]+\))? ([0-9]+)(\.([0-9]+)| |:)'
 
     local SEVENZ_OUTPUT_LINE
     while IFS= read -r SEVENZ_OUTPUT_LINE; do
@@ -1181,8 +1182,9 @@ installer::entrypoint() {
       fi
 
       if [[ "${SEVENZ_OUTPUT_LINE}" =~ ${SEZENV_VERSION_REGEX} ]]; then
-        SEVENZ_VERSION_MAJOR="${BASH_REMATCH[2]}"
-        SEVENZ_VERSION_MINOR="${BASH_REMATCH[4]:-0}"
+        # Force base 10, as minor versions such as "08" would otherwise be read as invalid octal
+        SEVENZ_VERSION_MAJOR="$((10#${BASH_REMATCH[2]}))"
+        SEVENZ_VERSION_MINOR="$((10#${BASH_REMATCH[4]:-0}))"
 
         if [[ "${SEVENZ_VERSION_MAJOR}" -gt 25 ]]; then
           SEVENZ_REQUIRE_SNLD="yes"
