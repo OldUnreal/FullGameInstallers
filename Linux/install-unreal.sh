@@ -946,6 +946,7 @@ installer::entrypoint() {
 
       local ARIA2C_DOWNLOAD_DIRECTORY="${DOWNLOAD_PATH%/*}"
       local ARIA2C_DOWNLOAD_FILE="${DOWNLOAD_PATH##*/}"
+      local ADDITIONAL_ARGS=()
 
       if [[ "${IS_SPECIAL_URL}" == "github.com" ]] && [[ -n "${RESOLVED_GITHUB_TOKEN}" ]]; then
         ADDITIONAL_ARGS+=("--header=Authorization: Bearer ${RESOLVED_GITHUB_TOKEN}")
@@ -967,6 +968,7 @@ installer::entrypoint() {
             echo "${DOWNLOAD_FILE}|${BASH_REMATCH[3]}|${BASH_REMATCH[5]}|${BASH_REMATCH[1]}|${BASH_REMATCH[6]}"
           fi
         done
+      return "${PIPESTATUS[0]}"
     elif [[ "${DOWNLOADER_DL_TYPE}" == "curl" ]]; then
       #                                  %                   Total          %            Received         %            Xfered        AvgSpdDown          AvgSpdUp  Time Total  Time Spent  Time Left   Current Speed
       local CURL_CAPTURE_REGEX='^\s*[0-9]+\s+([1-9][0-9.]*[kKMGT]?)\s+([0-9]+)\s+([0-9.]+[kKMGT]?)\s+[0-9]+\s+[0-9.]+[kKMGT]?\s+[0-9.]+[kKMGT]?\s+[0-9.]+[kKMGT]?\s+[-0-9:]+\s+[-0-9:]+\s+[-0-9:]+\s+([0-9.]+[kKMGT]?)\s*$'
