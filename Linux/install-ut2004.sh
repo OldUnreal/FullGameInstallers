@@ -2107,7 +2107,8 @@ You may read the Terms of Service at this URL:
       chmod +x "${UNSHIELD_BIN}"
     fi
 
-    local RAW_TOTAL_FILES_TO_EXTRACT TOTAL_FILES_TO_EXTRACT
+    # If the file count cannot be determined, extraction still proceeds without a percentage
+    local RAW_TOTAL_FILES_TO_EXTRACT TOTAL_FILES_TO_EXTRACT=0
     RAW_TOTAL_FILES_TO_EXTRACT=$("${UNSHIELD_BIN}" l "${CAB_FILE}" | tail -n1)
 
     local LINE_MATCH_REGEX='^\s*([0-9]+)'
@@ -2124,7 +2125,10 @@ You may read the Terms of Service at this URL:
         if [[ "${UNPACK_PROGRESS}" =~ ${EXTRACTING_MATCH_REGEX} ]]; then
           local CURRENT_FILE="${BASH_REMATCH[1]##*/}"
 
-          local PERCENT_PROGRESS="$(((CURRENT_FILE_INDEX * 100) / TOTAL_FILES_TO_EXTRACT))"
+          local PERCENT_PROGRESS=0
+          if [[ "${TOTAL_FILES_TO_EXTRACT}" -gt 0 ]]; then
+            PERCENT_PROGRESS="$(((CURRENT_FILE_INDEX * 100) / TOTAL_FILES_TO_EXTRACT))"
+          fi
           CURRENT_FILE_INDEX=$((CURRENT_FILE_INDEX + 1))
 
           echo "${TOTAL_FILES_TO_EXTRACT}|${PERCENT_PROGRESS}|${CURRENT_FILE_INDEX}|${CURRENT_FILE}"
