@@ -120,18 +120,25 @@ term::yesno() {
     DEFAULT_PROMPT="[Yn]"
   fi
 
+  # When the script is piped into bash (e.g. from the .desktop file), STDIN is the script itself,
+  # so read the answer from the terminal instead
+  local PROMPT_INPUT="/dev/stdin"
+  if ! test -t 0 && { true </dev/tty; } 2>/dev/null; then
+    PROMPT_INPUT="/dev/tty"
+  fi
+
   # In case the user was impatient and typed a whole bunch of crap in their terminal while waiting for a download
   # clear the STDIN buffer
-  if test -t 0; then
+  if test -t 0 || [[ "${PROMPT_INPUT}" == "/dev/tty" ]]; then
     local discard
-    read -r -n 1000000 -t 0.001 discard || true
+    read -r -n 1000000 -t 0.001 discard <"${PROMPT_INPUT}" || true
 
     if [[ -n "${discard:-}" ]]; then
       echo
     fi
   fi
 
-  read -p "$(ansi::styled "?" "${ansi_stylenum[bright]}" "${ansi_colornum[green]}") ${QUESTION} $(ansi::styled "${DEFAULT_PROMPT}" "${ansi_stylenum[bright]}") " -n 1 -r
+  read -p "$(ansi::styled "?" "${ansi_stylenum[bright]}" "${ansi_colornum[green]}") ${QUESTION} $(ansi::styled "${DEFAULT_PROMPT}" "${ansi_stylenum[bright]}") " -n 1 -r <"${PROMPT_INPUT}"
   echo
   if [[ "${DEFAULT}" =~ ^[Nn]$ ]]; then
     if [[ ! "${REPLY}" =~ ^[Yy]$ ]]; then
