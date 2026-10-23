@@ -115,9 +115,19 @@ step::ut2004_special_fixes::find_library() {
     return 1
   fi
 
+  # ldconfig usually lives in /sbin or /usr/sbin, which may not be in PATH for regular users
+  local LDCONFIG_BIN=""
   if command -v "ldconfig" &>/dev/null; then
+    LDCONFIG_BIN="ldconfig"
+  elif [[ -x "/sbin/ldconfig" ]]; then
+    LDCONFIG_BIN="/sbin/ldconfig"
+  elif [[ -x "/usr/sbin/ldconfig" ]]; then
+    LDCONFIG_BIN="/usr/sbin/ldconfig"
+  fi
+
+  if [[ -n "${LDCONFIG_BIN}" ]]; then
     local LIB_PATH
-    LIB_PATH=$( (ldconfig -p | grep -F "${LIBRARY_NAME}" | head -n 1) || true)
+    LIB_PATH=$( ("${LDCONFIG_BIN}" -p | grep -F "${LIBRARY_NAME}" | head -n 1) || true)
 
     if [ -z "${LIB_PATH}" ]; then
       return 0
@@ -140,7 +150,7 @@ step::ut2004_special_fixes::find_library() {
   local CURRENT_PATH
   for CURRENT_PATH in "${SEARCH_PATHS[@]}"; do
     if [[ -f "${CURRENT_PATH}/${LIBRARY_NAME}" ]]; then
-      echo "${LIBRARY_NAME}"
+      echo "${CURRENT_PATH}/${LIBRARY_NAME}"
       break
     fi
   done
