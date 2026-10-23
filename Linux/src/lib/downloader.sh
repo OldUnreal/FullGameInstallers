@@ -90,7 +90,7 @@ downloader::fetch_json() {
       ADDITIONAL_ARGS+=("--header" "Authorization: Bearer ${RESOLVED_GITHUB_TOKEN}")
     fi
 
-    "${DOWNLOADER_API_BIN}" -Ls "${ADDITIONAL_ARGS[@]}" \
+    "${DOWNLOADER_API_BIN}" -Ls --fail "${ADDITIONAL_ARGS[@]}" \
       --compressed --connect-timeout "${DOWNLOADER_TIMEOUT}" \
       --user-agent "${DOWNLOADER_USER_AGENT}" \
       "${ENDPOINT_URL}" 2>/dev/null
@@ -357,7 +357,7 @@ __downloader::download_file_with_progress() {
       ADDITIONAL_ARGS+=("--header" "Authorization: Bearer ${RESOLVED_GITHUB_TOKEN}")
     fi
 
-    "${DOWNLOADER_DL_BIN}" -LN --progress-meter "${ADDITIONAL_ARGS[@]}" \
+    "${DOWNLOADER_DL_BIN}" -LN --fail --progress-meter "${ADDITIONAL_ARGS[@]}" \
       --connect-timeout "${DOWNLOADER_TIMEOUT}" \
       --user-agent "${DOWNLOADER_USER_AGENT}" \
       "${DOWNLOAD_URL}" -o "${DOWNLOAD_PATH}" 2>&1 |

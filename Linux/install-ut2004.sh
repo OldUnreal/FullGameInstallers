@@ -711,7 +711,7 @@ installer::entrypoint() {
         ADDITIONAL_ARGS+=("--header" "Authorization: Bearer ${RESOLVED_GITHUB_TOKEN}")
       fi
 
-      "${DOWNLOADER_API_BIN}" -Ls "${ADDITIONAL_ARGS[@]}" \
+      "${DOWNLOADER_API_BIN}" -Ls --fail "${ADDITIONAL_ARGS[@]}" \
         --compressed --connect-timeout "${DOWNLOADER_TIMEOUT}" \
         --user-agent "${DOWNLOADER_USER_AGENT}" \
         "${ENDPOINT_URL}" 2>/dev/null
@@ -978,7 +978,7 @@ installer::entrypoint() {
         ADDITIONAL_ARGS+=("--header" "Authorization: Bearer ${RESOLVED_GITHUB_TOKEN}")
       fi
 
-      "${DOWNLOADER_DL_BIN}" -LN --progress-meter "${ADDITIONAL_ARGS[@]}" \
+      "${DOWNLOADER_DL_BIN}" -LN --fail --progress-meter "${ADDITIONAL_ARGS[@]}" \
         --connect-timeout "${DOWNLOADER_TIMEOUT}" \
         --user-agent "${DOWNLOADER_USER_AGENT}" \
         "${DOWNLOAD_URL}" -o "${DOWNLOAD_PATH}" 2>&1 |
@@ -1741,7 +1741,7 @@ You may read the Terms of Service at this URL:
       term::step::progress "Downloading Metadata"
       { PATCH_METADATA_JSON=$(downloader::fetch_json "${PATCH_METADATA_URL}"); } ||
         {
-          term::step::failed_with_error "Failed to read patch metadata from GitHub. Installation aborted."
+          term::step::failed_with_error "Failed to read patch metadata from GitHub. If you are being rate limited, set the GITHUB_TOKEN environment variable and try again. Installation aborted."
           return 1
         }
     fi

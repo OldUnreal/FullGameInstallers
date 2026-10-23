@@ -23,7 +23,7 @@ step::read_patch_meta_from_github() {
     term::step::progress "Downloading Metadata"
     { PATCH_METADATA_JSON=$(downloader::fetch_json "${PATCH_METADATA_URL}"); } ||
       {
-        term::step::failed_with_error "Failed to read patch metadata from GitHub. Installation aborted."
+        term::step::failed_with_error "Failed to read patch metadata from GitHub. If you are being rate limited, set the GITHUB_TOKEN environment variable and try again. Installation aborted."
         return 1
       }
   fi
