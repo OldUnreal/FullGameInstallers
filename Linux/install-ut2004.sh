@@ -2576,9 +2576,7 @@ unrealed::launcher() {
       _arg_mode="proton"
     elif [[ -n "${_arg_wine:-}" ]]; then
       _arg_mode="wine"
-    fi
-
-    if command -v umu-run &>/dev/null; then
+    elif command -v umu-run &>/dev/null; then
       _arg_mode="umu-launcher"
     elif [[ -x "${DEFAULT_PROTON}" ]]; then
       _arg_mode="proton"
@@ -2586,6 +2584,9 @@ unrealed::launcher() {
     elif command -v wine &>/dev/null; then
       _arg_mode="wine"
       _arg_wine="wine"
+    else
+      unrealed::error "Unable to find umu-launcher, Proton or Wine. Please install one of them, or use the --mode argument."
+      return 1
     fi
   fi
 
