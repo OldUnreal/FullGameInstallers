@@ -49,7 +49,7 @@ exec 6>&1
 local PROGRESS_MIN_REFRESH=0.1
 
 ansi::styled() {
-  ALLOW_ESCAPES="off"
+  local ALLOW_ESCAPES="off"
   if [[ "${1:-}" == "-e" ]]; then
     ALLOW_ESCAPES="on"
     shift

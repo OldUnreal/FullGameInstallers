@@ -234,7 +234,7 @@ installer::entrypoint() {
   local PROGRESS_MIN_REFRESH=0.1
 
   ansi::styled() {
-    ALLOW_ESCAPES="off"
+    local ALLOW_ESCAPES="off"
     if [[ "${1:-}" == "-e" ]]; then
       ALLOW_ESCAPES="on"
       shift
@@ -1867,7 +1867,7 @@ You may read the Terms of Service at this URL:
       return 1
     fi
 
-    PATCH_FILENAME="${PATCH_DOWNLOAD_URL##*/}"
+    local PATCH_FILENAME="${PATCH_DOWNLOAD_URL##*/}"
     PATCH_FILENAME="${PATCH_FILENAME%%\?*}"
 
     local PATCH_DOWNLOAD_SIZE
@@ -1897,7 +1897,7 @@ You may read the Terms of Service at this URL:
       local DOWNLOAD_FILENAME="${DOWNLOADS_FILENAME_LIST[${DOWNLOAD_SOURCE_KEY}]}"
       local IS_DOWNLOAD_SKIPPED="no"
 
-      DOWNLOAD_PATH="${_arg_destination%/}/Installer/${DOWNLOAD_FILENAME}"
+      local DOWNLOAD_PATH="${_arg_destination%/}/Installer/${DOWNLOAD_FILENAME}"
 
       local TARGET_STEP_NAME="Download ${DOWNLOAD_FILENAME}"
 
@@ -1909,6 +1909,7 @@ You may read the Terms of Service at this URL:
 
       term::step::new "${TARGET_STEP_NAME}"
 
+      local POSSIBLE_EXISTING_FILE
       for POSSIBLE_EXISTING_FILE in "${POSSIBLE_EXISTING_FILES_TO_CHECK[@]}"; do
         # If the file exist and isn't a partial download
         if [[ -f "${POSSIBLE_EXISTING_FILE}" ]] && [[ ! -f "${POSSIBLE_EXISTING_FILE}.aria2" ]]; then
@@ -1917,6 +1918,7 @@ You may read the Terms of Service at this URL:
           EXISTING_HASH=$(helper::progress::run_with_progress "Verifying existing file" downloader::compute_sha256sum "${POSSIBLE_EXISTING_FILE}")
 
           local REMAINING_DOWNLOAD_URL_SETS="${DOWNLOAD_URL_SETS}"
+          local CURRENT_DOWNLOAD_URL_SET
           while true; do
             # We looped through all the possible values, we can break out
             if [[ -z "${REMAINING_DOWNLOAD_URL_SETS}" ]]; then
@@ -2140,7 +2142,8 @@ You may read the Terms of Service at this URL:
     fi
 
     # Migrate old Architecture Specific Folders from old patches to the regular System folder
-    UE_OLD_SYSTEM_SUFFIXES=(64 ARM64)
+    local UE_OLD_SYSTEM_SUFFIXES=(64 ARM64)
+    local UE_OLD_SYSTEM_SUFFIX OLD_SYS_FILE OLD_SYS_BASENAME
     for UE_OLD_SYSTEM_SUFFIX in "${UE_OLD_SYSTEM_SUFFIXES[@]}"; do
       if [[ ! -d "${_arg_destination%/}/System${UE_OLD_SYSTEM_SUFFIX}" ]]; then
         continue
@@ -2419,7 +2422,7 @@ unrealed::launcher() {
   )
 
   ansi::styled() {
-    ALLOW_ESCAPES="off"
+    local ALLOW_ESCAPES="off"
     if [[ "${1:-}" == "-e" ]]; then
       ALLOW_ESCAPES="on"
       shift
@@ -2879,6 +2882,8 @@ You can launch the game by running:
 
   ${DESTINATION_HOMIFIED}/System${UE_SYSTEM_FOLDER_SUFFIX:-}/${MAIN_BINARY_NAME}${ARCHITECTURE_BINARY_SUFFIX}
 """
+
+    local DIALOG_ARGS=()
 
     if [[ "${_arg_ui_mode:-none}" == "none" ]]; then
       return 0
