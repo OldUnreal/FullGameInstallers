@@ -175,6 +175,9 @@ __unarchiver::unarchive_file_with_progress() {
     IS_TARBALL="y"
   fi
 
+  # The progress output of tar and 7z is parsed below, it must not be translated or use localized number formats
+  local -x LC_ALL=C
+
   local UNARCHIVE_PROGRESS
   if [[ "${IS_TARBALL}" == "y" ]]; then
     local TAR_REGEX='^tar:\s+r:\s+[0-9]+\s+\((.+)\)$'

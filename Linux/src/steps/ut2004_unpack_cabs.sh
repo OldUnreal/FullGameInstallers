@@ -128,6 +128,9 @@ __step::ut2004_unpack_cabs::run() {
   local CAB_FILE="${1:-}"
   local WRITE_TO_PATH="${2:-}"
 
+  # The output of unshield is parsed below, it must not be translated or use localized number formats
+  local -x LC_ALL=C
+
   local UNSHIELD_BIN="unshield"
 
   if [[ "${DOWNLOADS_FILENAME_LIST[unshield]:-}" == "unshield" ]]; then
