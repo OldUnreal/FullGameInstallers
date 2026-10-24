@@ -189,7 +189,7 @@ installer::entrypoint() {
   # @include lib/unarchiver.sh
 
   # Patch Metadata Download Step
-  local PATCH_METADATA_URL="https://api.github.com/repos/OldUnreal/UT2004Patches/releases"
+  local PATCH_METADATA_URL="https://api.github.com/repos/OldUnreal/UT2004Patches/releases/latest"
 
   # Download Steps
   # shellcheck disable=SC2034 # Used dynamically below
@@ -201,7 +201,8 @@ installer::entrypoint() {
 
   # shellcheck disable=SC2034 # Used dynamically below
   local TITLE_BACKUP_DOWNLOAD_SOURCES=(
-    "https://archive.org/download/ut-2004/UT2004.ISO|3751510016|7ae95242aa23d5e31b353811e1e920a4377fa53cf728b8edcb17006b7f3c4e97"
+    # url|size|sha256|archive_member|member_size|member_sha256
+    "https://archive.org/download/unreal-pc-redump/UNREAL-PC-REDUMP/Unreal%20Tournament%202004%20%28USA%29%20%28Editor%27s%20Choice%20and%20Mega%20Bonus%20Pack%29.zip|2978714427|ab7958985a7640420991bd9cd329696a221bc90f6c56b457d0b1db8864c1de29|Unreal Tournament 2004 (USA) (Editor's Choice and Mega Bonus Pack).iso|2995322880|43e9182ae20bcbc0f6f4588fee6c1b336c261f1465403118a1973b09b1a22541"
   )
 
   # Build Download sources

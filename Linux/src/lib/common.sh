@@ -324,34 +324,20 @@ helper::run_as_proc_group() {
   return "${EXIT_CODE}"
 }
 
-helper::string::unshift::next_value() {
-  __helper::string::unshift "${1:-}" "${2:-}" "v"
-}
+# Reads the n-th (1-based) field of a separated string, the separator defaults to "|"
+helper::string::field() {
+  local VALUE="${1:-}"
+  local FIELD_INDEX="${2:-1}"
+  local SEPARATOR="${3:-|}"
 
-helper::string::unshift::remainder() {
-  __helper::string::unshift "${1:-}" "${2:-}" "r"
-}
+  local i
+  for ((i = 1; i < FIELD_INDEX; i++)); do
+    if [[ "${VALUE}" != *"${SEPARATOR}"* ]]; then
+      return 0
+    fi
 
-__helper::string::unshift() {
-  local VAR_CURRENT_VALUE="${1:-}"
-  local SEPARATOR="${2:-|}"
-  local RETURN="${3}"
+    VALUE="${VALUE#*"${SEPARATOR}"}"
+  done
 
-  local SHIFTED_VALUE
-  local REMAINING_VALUE
-
-  if [[ "${VAR_CURRENT_VALUE}" == *"${SEPARATOR}"* ]]; then
-    SHIFTED_VALUE="${VAR_CURRENT_VALUE%%"${SEPARATOR}"*}"
-    REMAINING_VALUE="${VAR_CURRENT_VALUE#*"${SEPARATOR}"}"
-  else
-    SHIFTED_VALUE="${VAR_CURRENT_VALUE}"
-    REMAINING_VALUE=""
-  fi
-
-  if [[ "${RETURN}" == "r" ]]; then
-    echo "${REMAINING_VALUE}"
-    return 0
-  fi
-
-  echo "${SHIFTED_VALUE}"
+  echo "${VALUE%%"${SEPARATOR}"*}"
 }

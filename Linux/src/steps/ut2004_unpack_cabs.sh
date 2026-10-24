@@ -78,17 +78,10 @@ step::ut2004_unpack_cabs() {
 
     local TOTAL_FILES PERCENT CURRENT_FILE_INDEX FILE_NAME
 
-    TOTAL_FILES=$(helper::string::unshift::next_value "${UNPACK_PROGRESS}")
-    UNPACK_PROGRESS=$(helper::string::unshift::remainder "${UNPACK_PROGRESS}")
-
-    PERCENT=$(helper::string::unshift::next_value "${UNPACK_PROGRESS}")
-    UNPACK_PROGRESS=$(helper::string::unshift::remainder "${UNPACK_PROGRESS}")
-
-    CURRENT_FILE_INDEX=$(helper::string::unshift::next_value "${UNPACK_PROGRESS}")
-    UNPACK_PROGRESS=$(helper::string::unshift::remainder "${UNPACK_PROGRESS}")
-
-    FILE_NAME=$(helper::string::unshift::next_value "${UNPACK_PROGRESS}")
-    UNPACK_PROGRESS=$(helper::string::unshift::remainder "${UNPACK_PROGRESS}")
+    TOTAL_FILES=$(helper::string::field "${UNPACK_PROGRESS}" 1)
+    PERCENT=$(helper::string::field "${UNPACK_PROGRESS}" 2)
+    CURRENT_FILE_INDEX=$(helper::string::field "${UNPACK_PROGRESS}" 3)
+    FILE_NAME=$(helper::string::field "${UNPACK_PROGRESS}" 4)
 
     term::step::progress "${CURRENT_FILE_INDEX} of ${TOTAL_FILES} - ${FILE_NAME}" >&6
 

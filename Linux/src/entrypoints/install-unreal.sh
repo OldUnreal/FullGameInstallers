@@ -187,7 +187,7 @@ installer::entrypoint() {
   # @include lib/unarchiver.sh
 
   # Patch Metadata Download Step
-  local PATCH_METADATA_URL="https://api.github.com/repos/OldUnreal/Unreal-testing/releases"
+  local PATCH_METADATA_URL="https://api.github.com/repos/OldUnreal/Unreal-testing/releases/latest"
 
   # Download Steps
   # shellcheck disable=SC2034 # Used dynamically below
