@@ -28,26 +28,27 @@ step::download_files() {
         EXISTING_FILESIZE=$(stat --format=%s "${POSSIBLE_EXISTING_FILE}")
         EXISTING_HASH=$(helper::progress::run_with_progress "Verifying existing file" downloader::compute_sha256sum "${POSSIBLE_EXISTING_FILE}")
 
-        local REMAINING_DOWNLOAD_URL_SETS="${DOWNLOAD_URL_SETS}"
+        local SET_INDEX=0
         local CURRENT_DOWNLOAD_URL_SET
         while true; do
+          SET_INDEX=$((SET_INDEX + 1))
+          CURRENT_DOWNLOAD_URL_SET=$(helper::string::field "${DOWNLOAD_URL_SETS}" "${SET_INDEX}" ";;")
+
           # We looped through all the possible values, we can break out
-          if [[ -z "${REMAINING_DOWNLOAD_URL_SETS}" ]]; then
+          if [[ -z "${CURRENT_DOWNLOAD_URL_SET}" ]]; then
             break
           fi
 
-          CURRENT_DOWNLOAD_URL_SET=$(helper::string::unshift::next_value "${REMAINING_DOWNLOAD_URL_SETS}" ";;")
-          REMAINING_DOWNLOAD_URL_SETS=$(helper::string::unshift::remainder "${REMAINING_DOWNLOAD_URL_SETS}" ";;")
+          local DOWNLOAD_SIZE DOWNLOAD_HASH
 
-          local DOWNLOAD_URL DOWNLOAD_SIZE DOWNLOAD_HASH
-
-          DOWNLOAD_URL=$(helper::string::unshift::next_value "${CURRENT_DOWNLOAD_URL_SET}")
-          CURRENT_DOWNLOAD_URL_SET=$(helper::string::unshift::remainder "${CURRENT_DOWNLOAD_URL_SET}")
-
-          DOWNLOAD_SIZE=$(helper::string::unshift::next_value "${CURRENT_DOWNLOAD_URL_SET}")
-          CURRENT_DOWNLOAD_URL_SET=$(helper::string::unshift::remainder "${CURRENT_DOWNLOAD_URL_SET}")
-
-          DOWNLOAD_HASH=$(helper::string::unshift::next_value "${CURRENT_DOWNLOAD_URL_SET}")
+          # Archive sources describe the extracted file in their member fields
+          if [[ -n "$(helper::string::field "${CURRENT_DOWNLOAD_URL_SET}" 4)" ]]; then
+            DOWNLOAD_SIZE=$(helper::string::field "${CURRENT_DOWNLOAD_URL_SET}" 5)
+            DOWNLOAD_HASH=$(helper::string::field "${CURRENT_DOWNLOAD_URL_SET}" 6)
+          else
+            DOWNLOAD_SIZE=$(helper::string::field "${CURRENT_DOWNLOAD_URL_SET}" 2)
+            DOWNLOAD_HASH=$(helper::string::field "${CURRENT_DOWNLOAD_URL_SET}" 3)
+          fi
 
           if [[ -n "${DOWNLOAD_SIZE}" ]] && [[ "${EXISTING_FILESIZE}" -ne "${DOWNLOAD_SIZE}" ]]; then
             continue

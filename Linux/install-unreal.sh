@@ -507,36 +507,22 @@ installer::entrypoint() {
     return "${EXIT_CODE}"
   }
 
-  helper::string::unshift::next_value() {
-    __helper::string::unshift "${1:-}" "${2:-}" "v"
-  }
+  # Reads the n-th (1-based) field of a separated string, the separator defaults to "|"
+  helper::string::field() {
+    local VALUE="${1:-}"
+    local FIELD_INDEX="${2:-1}"
+    local SEPARATOR="${3:-|}"
 
-  helper::string::unshift::remainder() {
-    __helper::string::unshift "${1:-}" "${2:-}" "r"
-  }
+    local i
+    for ((i = 1; i < FIELD_INDEX; i++)); do
+      if [[ "${VALUE}" != *"${SEPARATOR}"* ]]; then
+        return 0
+      fi
 
-  __helper::string::unshift() {
-    local VAR_CURRENT_VALUE="${1:-}"
-    local SEPARATOR="${2:-|}"
-    local RETURN="${3}"
+      VALUE="${VALUE#*"${SEPARATOR}"}"
+    done
 
-    local SHIFTED_VALUE
-    local REMAINING_VALUE
-
-    if [[ "${VAR_CURRENT_VALUE}" == *"${SEPARATOR}"* ]]; then
-      SHIFTED_VALUE="${VAR_CURRENT_VALUE%%"${SEPARATOR}"*}"
-      REMAINING_VALUE="${VAR_CURRENT_VALUE#*"${SEPARATOR}"}"
-    else
-      SHIFTED_VALUE="${VAR_CURRENT_VALUE}"
-      REMAINING_VALUE=""
-    fi
-
-    if [[ "${RETURN}" == "r" ]]; then
-      echo "${REMAINING_VALUE}"
-      return 0
-    fi
-
-    echo "${SHIFTED_VALUE}"
+    echo "${VALUE%%"${SEPARATOR}"*}"
   }
   # shellcheck shell=bash
 
@@ -688,14 +674,25 @@ installer::entrypoint() {
       return 1
     fi
 
-    local CURRENT_DOWNLOAD_URL_SET REMAINING_DOWNLOAD_URL_SETS
-    CURRENT_DOWNLOAD_URL_SET=$(helper::string::unshift::next_value "${1}" ";;")
-    REMAINING_DOWNLOAD_URL_SETS=$(helper::string::unshift::remainder "${1}" ";;")
-
+    local DOWNLOAD_URL_SETS="${1}"
     local DOWNLOAD_PATH="${2}"
     local IS_RETRY="${3:-no}"
 
-    __downloader::download_file "${CURRENT_DOWNLOAD_URL_SET}" "${DOWNLOAD_PATH}" "${IS_RETRY}" || downloader::download_file "${REMAINING_DOWNLOAD_URL_SETS}" "${DOWNLOAD_PATH}" "yes"
+    # Try each source in order until one succeeds
+    local SET_INDEX=1
+    local CURRENT_DOWNLOAD_URL_SET
+    while true; do
+      CURRENT_DOWNLOAD_URL_SET=$(helper::string::field "${DOWNLOAD_URL_SETS}" "${SET_INDEX}" ";;")
+
+      if [[ -z "${CURRENT_DOWNLOAD_URL_SET}" ]]; then
+        return 1
+      fi
+
+      __downloader::download_source "${CURRENT_DOWNLOAD_URL_SET}" "${DOWNLOAD_PATH}" "${IS_RETRY}" && return 0
+
+      IS_RETRY="yes"
+      SET_INDEX=$((SET_INDEX + 1))
+    done
   }
 
   downloader::fetch_json() {
@@ -787,7 +784,7 @@ installer::entrypoint() {
     fi
   }
 
-  __downloader::download_file() {
+  __downloader::download_source() {
     local CURRENT_DOWNLOAD_URL_SET="${1:-}"
     local DOWNLOAD_PATH="${2:-}"
     local IS_RETRY="${3:-no}"
@@ -796,17 +793,118 @@ installer::entrypoint() {
       return 1
     fi
 
+    local ARCHIVE_MEMBER
+    ARCHIVE_MEMBER=$(helper::string::field "${CURRENT_DOWNLOAD_URL_SET}" 4)
+
+    if [[ -z "${ARCHIVE_MEMBER}" ]]; then
+      __downloader::download_file "${CURRENT_DOWNLOAD_URL_SET}" "${DOWNLOAD_PATH}" "${IS_RETRY}"
+      return
+    fi
+
+    # The source is an archive: download it under its own name, then extract the member to DOWNLOAD_PATH
+    local DOWNLOAD_FILE="${DOWNLOAD_PATH##*/}"
+    local DOWNLOAD_DIRECTORY="${DOWNLOAD_PATH%/*}"
+
+    local ARCHIVE_FILENAME
+    ARCHIVE_FILENAME=$(helper::string::field "${CURRENT_DOWNLOAD_URL_SET}" 1)
+    ARCHIVE_FILENAME="${ARCHIVE_FILENAME##*/}"
+    ARCHIVE_FILENAME="${ARCHIVE_FILENAME%%\?*}"
+    ARCHIVE_FILENAME=$(printf '%b' "${ARCHIVE_FILENAME//%/\\x}")
+
+    if [[ -z "${ARCHIVE_FILENAME}" ]] || [[ "${ARCHIVE_FILENAME}" == */* ]] || [[ "${ARCHIVE_FILENAME}" == "." ]] || [[ "${ARCHIVE_FILENAME}" == ".." ]]; then
+      return 1
+    fi
+
+    local ARCHIVE_PATH="${DOWNLOAD_DIRECTORY}/${ARCHIVE_FILENAME}"
+    local STAGING_PATH="${DOWNLOAD_DIRECTORY}/.archive-staging"
+
+    local ARCHIVE_EXPECTED_SIZE ARCHIVE_EXPECTED_HASH
+    ARCHIVE_EXPECTED_SIZE=$(helper::string::field "${CURRENT_DOWNLOAD_URL_SET}" 2)
+    ARCHIVE_EXPECTED_HASH=$(helper::string::field "${CURRENT_DOWNLOAD_URL_SET}" 3)
+
+    # Open the step here, as the existing archive check below reports its progress on it
+    local DOWNLOAD_DISPLAY_NAME="${DOWNLOAD_FILE}"
+    if [[ "${IS_RETRY}" == "yes" ]]; then
+      DOWNLOAD_DISPLAY_NAME="${DOWNLOAD_FILE} (retry)"
+    fi
+
+    if [[ "${CURRENT_STEP_NAME}" != "Download ${DOWNLOAD_DISPLAY_NAME}" ]]; then
+      term::step::new "Download ${DOWNLOAD_DISPLAY_NAME}"
+    fi
+
+    # Reuse a previously completed archive download (e.g. if a prior extraction was interrupted)
+    if [[ -f "${ARCHIVE_PATH}" ]] && [[ ! -f "${ARCHIVE_PATH}.aria2" ]] &&
+      __downloader::verify_file "${ARCHIVE_PATH}" "${ARCHIVE_EXPECTED_SIZE}" "${ARCHIVE_EXPECTED_HASH}"; then
+      term::step::skipped "SKIPPED: Archive already downloaded"
+    else
+      __downloader::download_file "${CURRENT_DOWNLOAD_URL_SET}" "${ARCHIVE_PATH}" "no" "${DOWNLOAD_DISPLAY_NAME}" || return 1
+    fi
+
+    rm -rf "${STAGING_PATH}"
+    unarchiver::unarchive_file "${DOWNLOAD_FILE}" "${ARCHIVE_PATH}" "${STAGING_PATH}" || return 1
+
+    term::step::new "Verify ${DOWNLOAD_FILE}"
+
+    rm -f "${DOWNLOAD_PATH}.aria2"
+    mv -f "${STAGING_PATH}/${ARCHIVE_MEMBER}" "${DOWNLOAD_PATH}" || {
+      term::step::failed
+      return 1
+    }
+
+    rm -rf "${STAGING_PATH}"
+    if [[ "${_arg_keep_installer_files:-off}" != "on" ]]; then
+      rm -f "${ARCHIVE_PATH}"
+    fi
+
+    __downloader::verify_file "${DOWNLOAD_PATH}" "$(helper::string::field "${CURRENT_DOWNLOAD_URL_SET}" 5)" "$(helper::string::field "${CURRENT_DOWNLOAD_URL_SET}" 6)" || {
+      term::step::failed
+      return 1
+    }
+
+    term::step::complete
+  }
+
+  __downloader::verify_file() {
+    local FILE_PATH="${1:-}"
+    local EXPECTED_SIZE="${2:-}"
+    local EXPECTED_HASH="${3:-}"
+
+    if [[ -n "${EXPECTED_SIZE}" ]]; then
+      local FILE_SIZE
+      FILE_SIZE=$(stat --format=%s "${FILE_PATH}") || return 1
+
+      if [[ "${FILE_SIZE}" -ne "${EXPECTED_SIZE}" ]]; then
+        return 1
+      fi
+    fi
+
+    if [[ -n "${EXPECTED_HASH}" ]]; then
+      local FILE_HASH
+      FILE_HASH=$(helper::progress::run_with_progress "Verifying file" downloader::compute_sha256sum "${FILE_PATH}")
+
+      if [[ -n "${FILE_HASH}" ]] && [[ "${FILE_HASH}" != "${EXPECTED_HASH}" ]]; then
+        return 1
+      fi
+    fi
+  }
+
+  __downloader::download_file() {
+    local CURRENT_DOWNLOAD_URL_SET="${1:-}"
+    local DOWNLOAD_PATH="${2:-}"
+    local IS_RETRY="${3:-no}"
+    local DOWNLOAD_DISPLAY_NAME="${4:-}"
+
+    if [[ -z "${CURRENT_DOWNLOAD_URL_SET}" ]] || [[ -z "${DOWNLOAD_PATH}" ]]; then
+      return 1
+    fi
+
     local DOWNLOAD_URL DOWNLOAD_EXPECTED_SIZE DOWNLOAD_EXPECTED_HASH
 
-    DOWNLOAD_URL=$(helper::string::unshift::next_value "${CURRENT_DOWNLOAD_URL_SET}")
-    CURRENT_DOWNLOAD_URL_SET=$(helper::string::unshift::remainder "${CURRENT_DOWNLOAD_URL_SET}")
+    DOWNLOAD_URL=$(helper::string::field "${CURRENT_DOWNLOAD_URL_SET}" 1)
+    DOWNLOAD_EXPECTED_SIZE=$(helper::string::field "${CURRENT_DOWNLOAD_URL_SET}" 2)
+    DOWNLOAD_EXPECTED_HASH=$(helper::string::field "${CURRENT_DOWNLOAD_URL_SET}" 3)
 
-    DOWNLOAD_EXPECTED_SIZE=$(helper::string::unshift::next_value "${CURRENT_DOWNLOAD_URL_SET}")
-    CURRENT_DOWNLOAD_URL_SET=$(helper::string::unshift::remainder "${CURRENT_DOWNLOAD_URL_SET}")
-
-    DOWNLOAD_EXPECTED_HASH=$(helper::string::unshift::next_value "${CURRENT_DOWNLOAD_URL_SET}")
-
-    local DOWNLOAD_FILE="${DOWNLOAD_PATH##*/}"
+    local DOWNLOAD_FILE="${DOWNLOAD_DISPLAY_NAME:-${DOWNLOAD_PATH##*/}}"
 
     local TARGET_STEP_NAME="Download ${DOWNLOAD_FILE}"
 
@@ -839,18 +937,11 @@ installer::entrypoint() {
       fi
 
       local TOTAL_SIZE CURRENT_PROGRESS RECEIVED SPEED
-      DOWNLOAD_PROGRESS=$(helper::string::unshift::remainder "${DOWNLOAD_PROGRESS}")
 
-      TOTAL_SIZE=$(helper::string::unshift::next_value "${DOWNLOAD_PROGRESS}")
-      DOWNLOAD_PROGRESS=$(helper::string::unshift::remainder "${DOWNLOAD_PROGRESS}")
-
-      CURRENT_PROGRESS=$(helper::string::unshift::next_value "${DOWNLOAD_PROGRESS}")
-      DOWNLOAD_PROGRESS=$(helper::string::unshift::remainder "${DOWNLOAD_PROGRESS}")
-
-      RECEIVED=$(helper::string::unshift::next_value "${DOWNLOAD_PROGRESS}")
-      DOWNLOAD_PROGRESS=$(helper::string::unshift::remainder "${DOWNLOAD_PROGRESS}")
-
-      SPEED=$(helper::string::unshift::next_value "${DOWNLOAD_PROGRESS}")
+      TOTAL_SIZE=$(helper::string::field "${DOWNLOAD_PROGRESS}" 2)
+      CURRENT_PROGRESS=$(helper::string::field "${DOWNLOAD_PROGRESS}" 3)
+      RECEIVED=$(helper::string::field "${DOWNLOAD_PROGRESS}" 4)
+      SPEED=$(helper::string::field "${DOWNLOAD_PROGRESS}" 5)
 
       term::step::progress "${CURRENT_PROGRESS}% @ ${SPEED}/s" >&6
 
@@ -905,28 +996,10 @@ installer::entrypoint() {
       busctl --user call "${KDIALOG_DBUS_ADDRESS[@]}" "org.kde.kdialog.ProgressDialog" "close" 2>/dev/null || true
     fi
 
-    local DL_RESULT_FILESIZE DL_RESULT_HASH
-
-    if [[ -n "${DOWNLOAD_EXPECTED_SIZE:-}" ]]; then
-      DL_RESULT_FILESIZE=$(stat --format=%s "${DOWNLOAD_PATH}") || {
-        term::step::failed
-        return 1
-      }
-
-      if [[ "${DL_RESULT_FILESIZE}" -ne "${DOWNLOAD_EXPECTED_SIZE}" ]]; then
-        term::step::failed
-        return 1
-      fi
-    fi
-
-    if [[ -n "${DOWNLOAD_EXPECTED_HASH:-}" ]]; then
-      DL_RESULT_HASH=$(helper::progress::run_with_progress "Verifying file" downloader::compute_sha256sum "${DOWNLOAD_PATH}")
-
-      if [[ -n "${DL_RESULT_HASH}" ]] && [[ "${DL_RESULT_HASH}" != "${DOWNLOAD_EXPECTED_HASH}" ]]; then
-        term::step::failed
-        return 1
-      fi
-    fi
+    __downloader::verify_file "${DOWNLOAD_PATH}" "${DOWNLOAD_EXPECTED_SIZE:-}" "${DOWNLOAD_EXPECTED_HASH:-}" || {
+      term::step::failed
+      return 1
+    }
 
     term::step::complete
   }
@@ -1346,7 +1419,7 @@ installer::entrypoint() {
   }
 
   # Patch Metadata Download Step
-  local PATCH_METADATA_URL="https://api.github.com/repos/OldUnreal/Unreal-testing/releases"
+  local PATCH_METADATA_URL="https://api.github.com/repos/OldUnreal/Unreal-testing/releases/latest"
 
   # Download Steps
   # shellcheck disable=SC2034 # Used dynamically below
@@ -1894,26 +1967,27 @@ You may read the Terms of Service at this URL:
           EXISTING_FILESIZE=$(stat --format=%s "${POSSIBLE_EXISTING_FILE}")
           EXISTING_HASH=$(helper::progress::run_with_progress "Verifying existing file" downloader::compute_sha256sum "${POSSIBLE_EXISTING_FILE}")
 
-          local REMAINING_DOWNLOAD_URL_SETS="${DOWNLOAD_URL_SETS}"
+          local SET_INDEX=0
           local CURRENT_DOWNLOAD_URL_SET
           while true; do
+            SET_INDEX=$((SET_INDEX + 1))
+            CURRENT_DOWNLOAD_URL_SET=$(helper::string::field "${DOWNLOAD_URL_SETS}" "${SET_INDEX}" ";;")
+
             # We looped through all the possible values, we can break out
-            if [[ -z "${REMAINING_DOWNLOAD_URL_SETS}" ]]; then
+            if [[ -z "${CURRENT_DOWNLOAD_URL_SET}" ]]; then
               break
             fi
 
-            CURRENT_DOWNLOAD_URL_SET=$(helper::string::unshift::next_value "${REMAINING_DOWNLOAD_URL_SETS}" ";;")
-            REMAINING_DOWNLOAD_URL_SETS=$(helper::string::unshift::remainder "${REMAINING_DOWNLOAD_URL_SETS}" ";;")
+            local DOWNLOAD_SIZE DOWNLOAD_HASH
 
-            local DOWNLOAD_URL DOWNLOAD_SIZE DOWNLOAD_HASH
-
-            DOWNLOAD_URL=$(helper::string::unshift::next_value "${CURRENT_DOWNLOAD_URL_SET}")
-            CURRENT_DOWNLOAD_URL_SET=$(helper::string::unshift::remainder "${CURRENT_DOWNLOAD_URL_SET}")
-
-            DOWNLOAD_SIZE=$(helper::string::unshift::next_value "${CURRENT_DOWNLOAD_URL_SET}")
-            CURRENT_DOWNLOAD_URL_SET=$(helper::string::unshift::remainder "${CURRENT_DOWNLOAD_URL_SET}")
-
-            DOWNLOAD_HASH=$(helper::string::unshift::next_value "${CURRENT_DOWNLOAD_URL_SET}")
+            # Archive sources describe the extracted file in their member fields
+            if [[ -n "$(helper::string::field "${CURRENT_DOWNLOAD_URL_SET}" 4)" ]]; then
+              DOWNLOAD_SIZE=$(helper::string::field "${CURRENT_DOWNLOAD_URL_SET}" 5)
+              DOWNLOAD_HASH=$(helper::string::field "${CURRENT_DOWNLOAD_URL_SET}" 6)
+            else
+              DOWNLOAD_SIZE=$(helper::string::field "${CURRENT_DOWNLOAD_URL_SET}" 2)
+              DOWNLOAD_HASH=$(helper::string::field "${CURRENT_DOWNLOAD_URL_SET}" 3)
+            fi
 
             if [[ -n "${DOWNLOAD_SIZE}" ]] && [[ "${EXISTING_FILESIZE}" -ne "${DOWNLOAD_SIZE}" ]]; then
               continue
