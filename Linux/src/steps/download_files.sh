@@ -76,10 +76,17 @@ step::download_files() {
       continue
     fi
 
-    downloader::download_file "${DOWNLOAD_URL_SETS}" "${DOWNLOAD_PATH}" || {
+    local DOWNLOAD_STATUS=0
+    downloader::download_file "${DOWNLOAD_URL_SETS}" "${DOWNLOAD_PATH}" || DOWNLOAD_STATUS=$?
+
+    if [[ "${DOWNLOAD_STATUS}" -eq "${DOWNLOADER_CANCELLED_STATUS}" ]]; then
+      echo
+      term::error_with_dialog "Download of ${DOWNLOAD_FILENAME} was cancelled. Installation aborted."
+      return 1
+    elif [[ "${DOWNLOAD_STATUS}" -ne 0 ]]; then
       echo
       term::error_with_dialog "Failed to download ${DOWNLOAD_FILENAME} from all available sources. Installation aborted."
       return 1
-    }
+    fi
   done
 }
