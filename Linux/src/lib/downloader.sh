@@ -504,6 +504,9 @@ __downloader::download_file_with_progress() {
 
   local DOWNLOAD_FILE="${DOWNLOAD_PATH##*/}"
 
+  # The progress output of the downloaders is parsed below, it must not be translated or use localized number formats
+  local -x LC_ALL=C
+
   local TRANSFER_PROGRESS=""
 
   local IS_SPECIAL_URL
