@@ -632,6 +632,18 @@ installer::entrypoint() {
   # For archive.org links, aria2c will be instructed to open multiple connections at the same time
   local ARIA2C_ARCHIVEORG_CONNECTIONS="${OLDUNREAL_ARCHIVEORG_ARIA2C_CONNECTIONS:-4}"
 
+  # Connections without data for DOWNLOADER_READ_TIMEOUT seconds, or slower than DOWNLOADER_LOWEST_SPEED bytes/s
+  # for DOWNLOADER_STALL_TIMEOUT seconds are considered stalled
+  local DOWNLOADER_READ_TIMEOUT=30
+  local DOWNLOADER_LOWEST_SPEED=1024
+  local DOWNLOADER_STALL_TIMEOUT=60
+
+  # Each source is attempted multiple times (resuming the partial download) before moving to the next one
+  local DOWNLOADER_MAX_ATTEMPTS="${OLDUNREAL_DOWNLOAD_ATTEMPTS:-3}"
+  local DOWNLOADER_RETRY_DELAY=5
+
+  local DOWNLOADER_CANCELLED_STATUS=130
+
   # Check which command should be used for API calls (preferably curl, then wget, then wget2)
   if command -v "curl" &>/dev/null; then
     DOWNLOADER_API_BIN="curl"
@@ -690,7 +702,12 @@ installer::entrypoint() {
         return 1
       fi
 
-      __downloader::download_source "${CURRENT_DOWNLOAD_URL_SET}" "${DOWNLOAD_PATH}" "${IS_RETRY}" && return 0
+      local SOURCE_STATUS=0
+      __downloader::download_source "${CURRENT_DOWNLOAD_URL_SET}" "${DOWNLOAD_PATH}" "${IS_RETRY}" || SOURCE_STATUS=$?
+
+      if [[ "${SOURCE_STATUS}" -eq 0 ]] || [[ "${SOURCE_STATUS}" -eq "${DOWNLOADER_CANCELLED_STATUS}" ]]; then
+        return "${SOURCE_STATUS}"
+      fi
 
       IS_RETRY="yes"
       SET_INDEX=$((SET_INDEX + 1))
@@ -721,6 +738,7 @@ installer::entrypoint() {
       fi
 
       "${DOWNLOADER_API_BIN}" -Ls --fail "${ADDITIONAL_ARGS[@]}" \
+        --retry 3 --retry-delay 2 \
         --compressed --connect-timeout "${DOWNLOADER_TIMEOUT}" \
         --user-agent "${DOWNLOADER_USER_AGENT}" \
         "${ENDPOINT_URL}" 2>/dev/null
@@ -732,7 +750,7 @@ installer::entrypoint() {
       fi
 
       "${DOWNLOADER_API_BIN}" -q "${ADDITIONAL_ARGS[@]}" \
-        --timeout="${DOWNLOADER_TIMEOUT}" \
+        --tries=3 --timeout="${DOWNLOADER_TIMEOUT}" \
         --user-agent="${DOWNLOADER_USER_AGENT}" \
         "${ENDPOINT_URL}" -O - -o /dev/null 2>/dev/null
     fi
@@ -839,7 +857,7 @@ installer::entrypoint() {
       __downloader::verify_file "${ARCHIVE_PATH}" "${ARCHIVE_EXPECTED_SIZE}" "${ARCHIVE_EXPECTED_HASH}"; then
       term::step::skipped "SKIPPED: Archive already downloaded"
     else
-      __downloader::download_file "${CURRENT_DOWNLOAD_URL_SET}" "${ARCHIVE_PATH}" "no" "${DOWNLOAD_DISPLAY_NAME}" || return 1
+      __downloader::download_file "${CURRENT_DOWNLOAD_URL_SET}" "${ARCHIVE_PATH}" "no" "${DOWNLOAD_DISPLAY_NAME}" || return
     fi
 
     rm -rf "${STAGING_PATH}"
@@ -847,7 +865,7 @@ installer::entrypoint() {
 
     term::step::new "Verify ${DOWNLOAD_FILE}"
 
-    rm -f "${DOWNLOAD_PATH}.aria2"
+    __downloader::discard_partial_download "${DOWNLOAD_PATH}"
     mv -f "${STAGING_PATH}/${ARCHIVE_MEMBER}" "${DOWNLOAD_PATH}" || {
       term::step::failed
       return 1
@@ -909,6 +927,7 @@ installer::entrypoint() {
     local DOWNLOAD_FILE="${DOWNLOAD_DISPLAY_NAME:-${DOWNLOAD_PATH##*/}}"
 
     local TARGET_STEP_NAME="Download ${DOWNLOAD_FILE}"
+    local RETRY_STEP_NAME="${TARGET_STEP_NAME% (retry)} (retry)"
 
     if [[ "${IS_RETRY}" == "no" ]]; then
       if [[ "${CURRENT_STEP_NAME}" != "${TARGET_STEP_NAME}" ]]; then
@@ -916,13 +935,107 @@ installer::entrypoint() {
       fi
       term::step::progress "Starting..."
     else
-      term::step::new "${TARGET_STEP_NAME} (retry)"
+      term::step::new "${RETRY_STEP_NAME}"
     fi
+
+    # Identifies the expected content, so a partial download is only ever resumed into the same file.
+    # Without a hash, the URL is the best identity available.
+    local DOWNLOAD_IDENTITY="${DOWNLOAD_EXPECTED_SIZE}|${DOWNLOAD_EXPECTED_HASH}"
+    if [[ -z "${DOWNLOAD_EXPECTED_HASH}" ]]; then
+      DOWNLOAD_IDENTITY="${DOWNLOAD_URL}|${DOWNLOAD_EXPECTED_SIZE}"
+    fi
+
+    local ATTEMPT=1
+    local HAS_RESTARTED_FROM_SCRATCH="no"
+    while true; do
+      __downloader::prepare_partial_download "${DOWNLOAD_PATH}" "${DOWNLOAD_IDENTITY}" || {
+        term::step::failed
+        return 1
+      }
+
+      local TRANSFER_STATUS=0
+      __downloader::transfer_file "${DOWNLOAD_URL}" "${DOWNLOAD_PATH}" "${DOWNLOAD_FILE}" || TRANSFER_STATUS=$?
+
+      if [[ "${TRANSFER_STATUS}" -eq "${DOWNLOADER_CANCELLED_STATUS}" ]]; then
+        term::step::failed
+        return "${DOWNLOADER_CANCELLED_STATUS}"
+      fi
+
+      if [[ "${TRANSFER_STATUS}" -eq 0 ]]; then
+        if __downloader::verify_file "${DOWNLOAD_PATH}" "${DOWNLOAD_EXPECTED_SIZE:-}" "${DOWNLOAD_EXPECTED_HASH:-}"; then
+          rm -f "${DOWNLOAD_PATH}.source"
+          term::step::complete
+          return 0
+        fi
+
+        # The completed file doesn't match, so it can't be resumed: start over once, then give up on this source
+        __downloader::discard_partial_download "${DOWNLOAD_PATH}"
+
+        if [[ "${HAS_RESTARTED_FROM_SCRATCH}" == "yes" ]]; then
+          term::step::failed
+          return 1
+        fi
+
+        HAS_RESTARTED_FROM_SCRATCH="yes"
+      elif { [[ "${DOWNLOADER_DL_TYPE}" == "curl" ]] && [[ "${TRANSFER_STATUS}" -eq 33 ]]; } ||
+        { [[ "${DOWNLOADER_DL_TYPE}" == "aria2c" ]] && [[ "${TRANSFER_STATUS}" -eq 8 ]]; }; then
+        # The server can't resume the partial download (curl: CURLE_RANGE_ERROR, aria2c: resume not supported)
+        __downloader::discard_partial_download "${DOWNLOAD_PATH}"
+      fi
+
+      term::step::failed
+
+      ATTEMPT=$((ATTEMPT + 1))
+      if [[ "${ATTEMPT}" -gt "${DOWNLOADER_MAX_ATTEMPTS}" ]]; then
+        return 1
+      fi
+
+      local RETRY_DELAY=$((DOWNLOADER_RETRY_DELAY * (ATTEMPT - 1)))
+      term::step::new "${RETRY_STEP_NAME}"
+      term::step::progress "Waiting ${RETRY_DELAY}s"
+      sleep "${RETRY_DELAY}"
+    done
+  }
+
+  # Partial downloads are tagged with the identity of their expected content in a .source file, and
+  # discarded when it doesn't match (e.g. a patch re-released under the same file name)
+  __downloader::prepare_partial_download() {
+    local DOWNLOAD_PATH="${1:-}"
+    local DOWNLOAD_IDENTITY="${2:-}"
+    local IDENTITY_PATH="${DOWNLOAD_PATH}.source"
+
+    # Never download through a symbolic link (e.g. left from reusing a file next to the script, which was
+    # since moved), as the data would be written wherever it points to. Only the link itself is removed.
+    if [[ -L "${DOWNLOAD_PATH}" ]]; then
+      rm -f "${DOWNLOAD_PATH}"
+    fi
+
+    if [[ -f "${DOWNLOAD_PATH}" ]] || [[ -f "${DOWNLOAD_PATH}.aria2" ]]; then
+      if [[ ! -f "${IDENTITY_PATH}" ]] || [[ "$(<"${IDENTITY_PATH}")" != "${DOWNLOAD_IDENTITY}" ]]; then
+        __downloader::discard_partial_download "${DOWNLOAD_PATH}"
+      fi
+    fi
+
+    echo "${DOWNLOAD_IDENTITY}" >"${IDENTITY_PATH}"
+  }
+
+  __downloader::discard_partial_download() {
+    local DOWNLOAD_PATH="${1:-}"
+
+    rm -f "${DOWNLOAD_PATH}" "${DOWNLOAD_PATH}.aria2" "${DOWNLOAD_PATH}.source"
+  }
+
+  __downloader::transfer_file() {
+    local DOWNLOAD_URL="${1:-}"
+    local DOWNLOAD_PATH="${2:-}"
+    local DOWNLOAD_FILE="${3:-}"
 
     local DOWNLOAD_PROGRESS
 
     local KDIALOG_DBUS_ADDRESS=()
 
+    # With kdialog, the progress dialog no longer being reachable on D-Bus means the user closed it,
+    # which is handled the same way as cancelling it
     if [[ "${_arg_ui_mode:-none}" == "kdialog" ]]; then
       read -ra KDIALOG_DBUS_ADDRESS < <(kdialog --title "${CURRENT_STEP_NAME}" --progressbar "Starting download..." 0 2>/dev/null)
     fi
@@ -932,8 +1045,8 @@ installer::entrypoint() {
         term::step::progress "Starting..." >&6
 
         if [[ "${_arg_ui_mode:-none}" == "kdialog" ]]; then
-          busctl --user call "${KDIALOG_DBUS_ADDRESS[@]}" "org.kde.kdialog.ProgressDialog" "setLabelText" s "Starting Download..." 2>/dev/null || break
-          busctl --user set-property "${KDIALOG_DBUS_ADDRESS[@]}" "org.kde.kdialog.ProgressDialog" "maximum" i 0 2>/dev/null || break
+          busctl --user call "${KDIALOG_DBUS_ADDRESS[@]}" "org.kde.kdialog.ProgressDialog" "setLabelText" s "Starting Download..." 2>/dev/null || exit "${DOWNLOADER_CANCELLED_STATUS}"
+          busctl --user set-property "${KDIALOG_DBUS_ADDRESS[@]}" "org.kde.kdialog.ProgressDialog" "maximum" i 0 2>/dev/null || exit "${DOWNLOADER_CANCELLED_STATUS}"
         fi
         continue
       fi
@@ -960,16 +1073,16 @@ installer::entrypoint() {
       if [[ "${_arg_ui_mode:-none}" == "kdialog" ]]; then
         local ESCAPED_DIALOG_TEXT
         ESCAPED_DIALOG_TEXT="$(echo -e "${DIALOG_TEXT}")"
-        busctl --user set-property "${KDIALOG_DBUS_ADDRESS[@]}" "org.kde.kdialog.ProgressDialog" "maximum" i 100 2>/dev/null || break
-        busctl --user set-property "${KDIALOG_DBUS_ADDRESS[@]}" "org.kde.kdialog.ProgressDialog" "value" i "${CURRENT_PROGRESS}" 2>/dev/null || break
-        busctl --user call "${KDIALOG_DBUS_ADDRESS[@]}" "org.kde.kdialog.ProgressDialog" "setLabelText" s "${ESCAPED_DIALOG_TEXT}" 2>/dev/null || break
+        busctl --user set-property "${KDIALOG_DBUS_ADDRESS[@]}" "org.kde.kdialog.ProgressDialog" "maximum" i 100 2>/dev/null || exit "${DOWNLOADER_CANCELLED_STATUS}"
+        busctl --user set-property "${KDIALOG_DBUS_ADDRESS[@]}" "org.kde.kdialog.ProgressDialog" "value" i "${CURRENT_PROGRESS}" 2>/dev/null || exit "${DOWNLOADER_CANCELLED_STATUS}"
+        busctl --user call "${KDIALOG_DBUS_ADDRESS[@]}" "org.kde.kdialog.ProgressDialog" "setLabelText" s "${ESCAPED_DIALOG_TEXT}" 2>/dev/null || exit "${DOWNLOADER_CANCELLED_STATUS}"
 
         # Check for cancellation
         local WAS_CANCELLED
         WAS_CANCELLED="$(busctl --user call "${KDIALOG_DBUS_ADDRESS[@]}" "org.kde.kdialog.ProgressDialog" "wasCancelled" 2>/dev/null || echo "b true")"
 
         if [[ "${WAS_CANCELLED}" == "b true" ]]; then
-          break
+          exit "${DOWNLOADER_CANCELLED_STATUS}"
         fi
       elif [[ "${_arg_ui_mode:-none}" == "zenity" ]]; then
         echo "${CURRENT_PROGRESS}"
@@ -983,27 +1096,20 @@ installer::entrypoint() {
       fi
     }
 
-    local DOWNLOAD_STATUS="${PIPESTATUS[0]}"
-
-    if [[ "${DOWNLOAD_STATUS}" -ne 0 ]]; then
-      if [[ "${_arg_ui_mode:-none}" == "kdialog" ]]; then
-        busctl --user call "${KDIALOG_DBUS_ADDRESS[@]}" "org.kde.kdialog.ProgressDialog" "close" 2>/dev/null || true
-      fi
-
-      term::step::failed
-      return "${DOWNLOAD_STATUS}"
-    fi
+    local PIPE_STATUSES=("${PIPESTATUS[@]}")
+    local TRANSFER_STATUS="${PIPE_STATUSES[0]}"
 
     if [[ "${_arg_ui_mode:-none}" == "kdialog" ]]; then
       busctl --user call "${KDIALOG_DBUS_ADDRESS[@]}" "org.kde.kdialog.ProgressDialog" "close" 2>/dev/null || true
     fi
 
-    __downloader::verify_file "${DOWNLOAD_PATH}" "${DOWNLOAD_EXPECTED_SIZE:-}" "${DOWNLOAD_EXPECTED_HASH:-}" || {
-      term::step::failed
-      return 1
-    }
+    # The transfer was interrupted by the user cancelling the kdialog or zenity progress dialog
+    if [[ "${TRANSFER_STATUS}" -ne 0 ]] &&
+      { [[ "${PIPE_STATUSES[1]}" -eq "${DOWNLOADER_CANCELLED_STATUS}" ]] || [[ "${PIPE_STATUSES[2]}" -ne 0 ]]; }; then
+      return "${DOWNLOADER_CANCELLED_STATUS}"
+    fi
 
-    term::step::complete
+    return "${TRANSFER_STATUS}"
   }
 
   # This function parses the output of the various downloaders to report status information
@@ -1041,10 +1147,11 @@ installer::entrypoint() {
         ADDITIONAL_ARGS+=("-x" "${ARIA2C_ARCHIVEORG_CONNECTIONS}")
       fi
 
-      stdbuf -o0 -- "${DOWNLOADER_DL_BIN}" --no-conf=true --allow-overwrite=true --remove-control-file=true \
+      stdbuf -o0 -- "${DOWNLOADER_DL_BIN}" --no-conf=true --continue=true --allow-overwrite=true --auto-file-renaming=false \
         --daemon=false --enable-color=false --stop-with-process="$$" \
         --truncate-console-readout=false --console-log-level=warn --summary-interval=0 \
-        --connect-timeout="${DOWNLOADER_TIMEOUT}" \
+        --connect-timeout="${DOWNLOADER_TIMEOUT}" --timeout="${DOWNLOADER_READ_TIMEOUT}" \
+        --lowest-speed-limit="${DOWNLOADER_LOWEST_SPEED}" --max-tries=5 --retry-wait=5 \
         --user-agent="${DOWNLOADER_USER_AGENT}" \
         --dir="${ARIA2C_DOWNLOAD_DIRECTORY}" --out="${ARIA2C_DOWNLOAD_FILE}" \
         "${ADDITIONAL_ARGS[@]}" \
@@ -1065,8 +1172,9 @@ installer::entrypoint() {
         ADDITIONAL_ARGS+=("--header" "Authorization: Bearer ${RESOLVED_GITHUB_TOKEN}")
       fi
 
-      "${DOWNLOADER_DL_BIN}" -LN --fail --progress-meter "${ADDITIONAL_ARGS[@]}" \
+      "${DOWNLOADER_DL_BIN}" -LN --fail --progress-meter -C - "${ADDITIONAL_ARGS[@]}" \
         --connect-timeout "${DOWNLOADER_TIMEOUT}" \
+        --speed-limit "${DOWNLOADER_LOWEST_SPEED}" --speed-time "${DOWNLOADER_STALL_TIMEOUT}" \
         --user-agent "${DOWNLOADER_USER_AGENT}" \
         "${DOWNLOAD_URL}" -o "${DOWNLOAD_PATH}" 2>&1 |
         stdbuf -oL -- tr $'\r' $'\n' |
@@ -1086,8 +1194,9 @@ installer::entrypoint() {
         ADDITIONAL_ARGS+=("--header=Authorization: Bearer ${RESOLVED_GITHUB_TOKEN}")
       fi
 
-      "${DOWNLOADER_DL_BIN}" --progress=dot "${ADDITIONAL_ARGS[@]}" \
-        --timeout="${DOWNLOADER_TIMEOUT}" \
+      "${DOWNLOADER_DL_BIN}" --progress=dot -c "${ADDITIONAL_ARGS[@]}" \
+        --timeout="${DOWNLOADER_TIMEOUT}" --read-timeout="${DOWNLOADER_READ_TIMEOUT}" \
+        --tries=5 --waitretry=5 --retry-connrefused \
         --user-agent="${DOWNLOADER_USER_AGENT}" \
         "${DOWNLOAD_URL}" -O "${DOWNLOAD_PATH}" -o - 2>&1 |
         while IFS= read -r TRANSFER_PROGRESS; do
@@ -1106,8 +1215,9 @@ installer::entrypoint() {
         ADDITIONAL_ARGS+=("--header=Authorization: Bearer ${RESOLVED_GITHUB_TOKEN}")
       fi
 
-      "${DOWNLOADER_DL_BIN}" --progress=bar --force-progress "${ADDITIONAL_ARGS[@]}" \
-        --timeout="${DOWNLOADER_TIMEOUT}" \
+      "${DOWNLOADER_DL_BIN}" --progress=bar --force-progress -c "${ADDITIONAL_ARGS[@]}" \
+        --timeout="${DOWNLOADER_TIMEOUT}" --read-timeout="${DOWNLOADER_READ_TIMEOUT}" \
+        --tries=5 --waitretry=5 --retry-connrefused \
         --user-agent="${DOWNLOADER_USER_AGENT}" \
         "${DOWNLOAD_URL}" -O "${DOWNLOAD_PATH}" 2>&1 |
         stdbuf -oL -- tr $'\r\033' $'\n\n' |
@@ -1950,7 +2060,15 @@ You may read the Terms of Service at this URL:
         return 1
       }
 
-    DOWNLOADS_SOURCE_LIST[patch_${PATCH_FOR_OS}]="${PATCH_DOWNLOAD_URL}|${PATCH_DOWNLOAD_SIZE}|"
+    # GitHub publishes a sha256 digest for release assets, older assets may not have one
+    local PATCH_DOWNLOAD_HASH
+    { PATCH_DOWNLOAD_HASH=$(echo "${PATCH_METADATA_JSON}" | jq -r "[ ${JQ_FILTER} ] | .[0].digest // empty | select(startswith(\"sha256:\")) | ltrimstr(\"sha256:\")"); } ||
+      {
+        term::step::failed_with_error "Couldn't determine patch hash. Installation aborted."
+        return 1
+      }
+
+    DOWNLOADS_SOURCE_LIST[patch_${PATCH_FOR_OS}]="${PATCH_DOWNLOAD_URL}|${PATCH_DOWNLOAD_SIZE}|${PATCH_DOWNLOAD_HASH}"
     DOWNLOADS_FILENAME_LIST[patch_${PATCH_FOR_OS}]="${PATCH_FILENAME}"
 
     term::step::complete
@@ -2038,11 +2156,18 @@ You may read the Terms of Service at this URL:
         continue
       fi
 
-      downloader::download_file "${DOWNLOAD_URL_SETS}" "${DOWNLOAD_PATH}" || {
+      local DOWNLOAD_STATUS=0
+      downloader::download_file "${DOWNLOAD_URL_SETS}" "${DOWNLOAD_PATH}" || DOWNLOAD_STATUS=$?
+
+      if [[ "${DOWNLOAD_STATUS}" -eq "${DOWNLOADER_CANCELLED_STATUS}" ]]; then
+        echo
+        term::error_with_dialog "Download of ${DOWNLOAD_FILENAME} was cancelled. Installation aborted."
+        return 1
+      elif [[ "${DOWNLOAD_STATUS}" -ne 0 ]]; then
         echo
         term::error_with_dialog "Failed to download ${DOWNLOAD_FILENAME} from all available sources. Installation aborted."
         return 1
-      }
+      fi
     done
   }
   step::download_files

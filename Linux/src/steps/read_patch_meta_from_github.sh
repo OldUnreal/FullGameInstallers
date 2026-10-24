@@ -86,7 +86,15 @@ step::read_patch_meta_from_github() {
       return 1
     }
 
-  DOWNLOADS_SOURCE_LIST[patch_${PATCH_FOR_OS}]="${PATCH_DOWNLOAD_URL}|${PATCH_DOWNLOAD_SIZE}|"
+  # GitHub publishes a sha256 digest for release assets, older assets may not have one
+  local PATCH_DOWNLOAD_HASH
+  { PATCH_DOWNLOAD_HASH=$(echo "${PATCH_METADATA_JSON}" | jq -r "[ ${JQ_FILTER} ] | .[0].digest // empty | select(startswith(\"sha256:\")) | ltrimstr(\"sha256:\")"); } ||
+    {
+      term::step::failed_with_error "Couldn't determine patch hash. Installation aborted."
+      return 1
+    }
+
+  DOWNLOADS_SOURCE_LIST[patch_${PATCH_FOR_OS}]="${PATCH_DOWNLOAD_URL}|${PATCH_DOWNLOAD_SIZE}|${PATCH_DOWNLOAD_HASH}"
   DOWNLOADS_FILENAME_LIST[patch_${PATCH_FOR_OS}]="${PATCH_FILENAME}"
 
   term::step::complete
