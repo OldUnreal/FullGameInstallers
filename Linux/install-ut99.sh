@@ -342,26 +342,83 @@ installer::entrypoint() {
   local STEP_PROGRESS_SPINNER_CHARS=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
   local STEP_PROGRESS_SPINNER_CURRENT=0
 
+  # Width of the terminal the steps are displayed on, 0 when it can't be determined (e.g. output is not a terminal)
+  local TERM_COLUMNS=0
+
+  # The step name as displayed while the step is running
+  local STEP_FITTED_NAME=""
+
+  term::update_columns() {
+    local TERM_SIZE
+
+    TERM_COLUMNS=0
+
+    if TERM_SIZE=$(stty size <&6 2>/dev/null) && [[ "${TERM_SIZE}" =~ ^[0-9]+\ ([0-9]+)$ ]]; then
+      TERM_COLUMNS="${BASH_REMATCH[1]}"
+    fi
+  }
+
+  # While a step is running, its line is rewritten with a carriage return, which can't erase a line that wrapped
+  # onto the next row of the terminal. The step name is shortened to stay on one row, with one column to spare
+  # so that the cursor doesn't wrap. The final line of a step is not affected, nothing is rewritten after it.
+  term::step::fit_name() {
+    # Room left once " [ x ] " is displayed
+    local STEP_NAME_ROOM=$((TERM_COLUMNS - 1 - 7))
+
+    STEP_FITTED_NAME="${CURRENT_STEP_NAME}"
+
+    if [[ "${TERM_COLUMNS}" -gt 0 ]] && [[ "${#STEP_FITTED_NAME}" -gt "${STEP_NAME_ROOM}" ]]; then
+      if [[ "${STEP_NAME_ROOM}" -ge 2 ]]; then
+        STEP_FITTED_NAME="${STEP_FITTED_NAME:0:STEP_NAME_ROOM-1}…"
+      else
+        STEP_FITTED_NAME=""
+      fi
+    fi
+  }
+
   term::step::new() {
     CURRENT_STEP_NAME="$*"
+    term::update_columns
+    term::step::fit_name
 
-    echo -en " $(ansi::styled "[   ]" "${ansi_stylenum[bright]}") $*"
+    echo -en " $(ansi::styled "[   ]" "${ansi_stylenum[bright]}") ${STEP_FITTED_NAME}"
   }
 
   term::step::replace() {
     CURRENT_STEP_NAME="$*"
+    term::update_columns
+    term::step::fit_name
 
-    echo -en "\r\033[K $(ansi::styled "[   ]" "${ansi_stylenum[bright]}") $*"
+    echo -en "\r\033[K $(ansi::styled "[   ]" "${ansi_stylenum[bright]}") ${STEP_FITTED_NAME}"
   }
 
   term::step::progress() {
     local STEP_PROGRESS_TEXT=""
 
+    term::step::fit_name
+
     if [[ -n "${1:-}" ]]; then
-      STEP_PROGRESS_TEXT="$(ansi::styled " ($*)" "${ansi_stylenum[dim]}")"
+      local STEP_PROGRESS_LABEL="$*"
+
+      if [[ "${TERM_COLUMNS}" -gt 0 ]]; then
+        # Room left once " [ x ] ", the step name and " ()" are displayed
+        local STEP_PROGRESS_ROOM=$((TERM_COLUMNS - 1 - 7 - ${#STEP_FITTED_NAME} - 3))
+
+        if [[ "${#STEP_PROGRESS_LABEL}" -gt "${STEP_PROGRESS_ROOM}" ]]; then
+          if [[ "${STEP_PROGRESS_ROOM}" -ge 2 ]]; then
+            STEP_PROGRESS_LABEL="${STEP_PROGRESS_LABEL:0:STEP_PROGRESS_ROOM-1}…"
+          else
+            STEP_PROGRESS_LABEL=""
+          fi
+        fi
+      fi
+
+      if [[ -n "${STEP_PROGRESS_LABEL}" ]]; then
+        STEP_PROGRESS_TEXT="$(ansi::styled " (${STEP_PROGRESS_LABEL})" "${ansi_stylenum[dim]}")"
+      fi
     fi
 
-    echo -en "\r $(ansi::styled "[" "${ansi_stylenum[bright]}") $(ansi::styled "${STEP_PROGRESS_SPINNER_CHARS[$STEP_PROGRESS_SPINNER_CURRENT]}" "${ansi_stylenum[dim]}") $(ansi::styled "]" "${ansi_stylenum[bright]}") ${CURRENT_STEP_NAME}${STEP_PROGRESS_TEXT}\033[K"
+    echo -en "\r $(ansi::styled "[" "${ansi_stylenum[bright]}") $(ansi::styled "${STEP_PROGRESS_SPINNER_CHARS[$STEP_PROGRESS_SPINNER_CURRENT]}" "${ansi_stylenum[dim]}") $(ansi::styled "]" "${ansi_stylenum[bright]}") ${STEP_FITTED_NAME}${STEP_PROGRESS_TEXT}\033[K"
     STEP_PROGRESS_SPINNER_CURRENT=$((STEP_PROGRESS_SPINNER_CURRENT + 1))
 
     if [[ "${STEP_PROGRESS_SPINNER_CURRENT}" -ge "${#STEP_PROGRESS_SPINNER_CHARS[@]}" ]]; then
