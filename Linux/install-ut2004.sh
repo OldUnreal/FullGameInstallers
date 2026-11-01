@@ -2313,7 +2313,7 @@ You may read the Terms of Service at this URL:
 
     # If the file count cannot be determined, extraction still proceeds without a percentage
     local RAW_TOTAL_FILES_TO_EXTRACT TOTAL_FILES_TO_EXTRACT=0
-    RAW_TOTAL_FILES_TO_EXTRACT=$("${UNSHIELD_BIN}" l "${CAB_FILE}" | tail -n1)
+    RAW_TOTAL_FILES_TO_EXTRACT=$("${UNSHIELD_BIN}" l "${CAB_FILE}" | tail -n1) || true
 
     local LINE_MATCH_REGEX='^\s*([0-9]+)'
 
