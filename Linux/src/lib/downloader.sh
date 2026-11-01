@@ -283,7 +283,8 @@ __downloader::verify_file() {
     local FILE_HASH
     FILE_HASH=$(helper::progress::run_with_progress "Verifying file" downloader::compute_sha256sum "${FILE_PATH}")
 
-    if [[ -n "${FILE_HASH}" ]] && [[ "${FILE_HASH}" != "${EXPECTED_HASH}" ]]; then
+    # An empty hash (no sha256 tool, or a read error) must not be mistaken for a match
+    if [[ "${FILE_HASH}" != "${EXPECTED_HASH}" ]]; then
       return 1
     fi
   fi
