@@ -112,7 +112,7 @@ _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" || { echo "Couldn't 
 set -euo pipefail
 
 if [ "${_arg_lint}" == "on" ] && ! command -v shellcheck &>/dev/null; then
-  die "shellcheck must be installed to format the files"
+  die "shellcheck must be installed to lint the files"
 fi
 
 if [ "${_arg_format}" == "on" ] && ! command -v shfmt &>/dev/null; then
