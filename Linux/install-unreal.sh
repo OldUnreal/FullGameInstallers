@@ -2088,9 +2088,9 @@ You may read the Terms of Service at this URL:
       for POSSIBLE_EXISTING_FILE in "${POSSIBLE_EXISTING_FILES_TO_CHECK[@]}"; do
         # If the file exist and isn't a partial download
         if [[ -f "${POSSIBLE_EXISTING_FILE}" ]] && [[ ! -f "${POSSIBLE_EXISTING_FILE}.aria2" ]]; then
-          local EXISTING_FILESIZE EXISTING_HASH
+          local EXISTING_FILESIZE EXISTING_HASH=""
+          local IS_EXISTING_HASH_COMPUTED="no"
           EXISTING_FILESIZE=$(stat --format=%s "${POSSIBLE_EXISTING_FILE}")
-          EXISTING_HASH=$(helper::progress::run_with_progress "Verifying existing file" downloader::compute_sha256sum "${POSSIBLE_EXISTING_FILE}")
 
           local SET_INDEX=0
           local CURRENT_DOWNLOAD_URL_SET
@@ -2118,8 +2118,16 @@ You may read the Terms of Service at this URL:
               continue
             fi
 
-            if [[ -n "${DOWNLOAD_HASH}" ]] && [[ "${EXISTING_HASH}" != "${DOWNLOAD_HASH}" ]]; then
-              continue
+            if [[ -n "${DOWNLOAD_HASH}" ]]; then
+              # Hashing is slow, only do it once the size matches an expected file, and only once per file
+              if [[ "${IS_EXISTING_HASH_COMPUTED}" == "no" ]]; then
+                EXISTING_HASH=$(helper::progress::run_with_progress "Verifying existing file" downloader::compute_sha256sum "${POSSIBLE_EXISTING_FILE}")
+                IS_EXISTING_HASH_COMPUTED="yes"
+              fi
+
+              if [[ "${EXISTING_HASH}" != "${DOWNLOAD_HASH}" ]]; then
+                continue
+              fi
             fi
 
             IS_DOWNLOAD_SKIPPED="yes"
