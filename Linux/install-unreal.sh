@@ -2035,13 +2035,8 @@ You may read the Terms of Service at this URL:
 
     local METADATA_FILTER
     METADATA_FILTER=$(step::read_patch_meta_from_github::metadata_filter "${PATCH_FOR_OS}" "${ARCHITECTURE_SUFFIX}")
-    local JQ_FILTER
 
-    { JQ_FILTER+=' | select(.browser_download_url | ascii_downcase | test("'"${METADATA_FILTER}"'"))'; } ||
-      {
-        term::step::failed_with_error "Implementation error, step::read_patch_meta_from_github::metadata_filter runtime error."
-        return 1
-      }
+    JQ_FILTER+=' | select(.browser_download_url | ascii_downcase | test("'"${METADATA_FILTER}"'"))'
 
     local PATCH_DOWNLOAD_URL
     { PATCH_DOWNLOAD_URL=$(echo "${PATCH_METADATA_JSON}" | jq -r "[ ${JQ_FILTER} ] | .[0].browser_download_url // empty"); } ||
