@@ -454,10 +454,17 @@ installer::entrypoint() {
     local CAN_WRITE="y"
     trap 'CAN_WRITE="n"' SIGPIPE
 
+    # When read times out in the middle of a line, the part already consumed is returned in the variable, and
+    # the rest of the line comes with the next read. It is carried over, or the start of the line would be lost.
+    local PARTIAL_UPDATE=""
+
     while kill -0 "${PROC_SUB_PID}" 2>/dev/null; do
       while IFS= read -r -u 3 -t 0.001 CURRENT_UPDATE; do
-        LAST_UPDATE="${CURRENT_UPDATE}"
+        LAST_UPDATE="${PARTIAL_UPDATE}${CURRENT_UPDATE}"
+        PARTIAL_UPDATE=""
       done
+
+      PARTIAL_UPDATE+="${CURRENT_UPDATE}"
 
       if [[ "${CAN_WRITE}" == "y" ]]; then
         echo "${LAST_UPDATE}" 2>/dev/null
@@ -474,7 +481,8 @@ installer::entrypoint() {
     if [[ "${CAN_WRITE}" == "y" ]]; then
       # Final drain of remaining data
       while IFS= read -r -u 3 CURRENT_UPDATE; do
-        LAST_UPDATE="${CURRENT_UPDATE}"
+        LAST_UPDATE="${PARTIAL_UPDATE}${CURRENT_UPDATE}"
+        PARTIAL_UPDATE=""
       done
       echo "${LAST_UPDATE}"
     else
