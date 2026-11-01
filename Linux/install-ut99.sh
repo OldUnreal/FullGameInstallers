@@ -1899,28 +1899,27 @@ installer::entrypoint() {
     fi
 
     # Check Case-Sensitivity
-    {
-      if [[ -f "${_arg_destination%/}/Installer/.check_casesensitive" ]]; then
-        rm -f "${_arg_destination%/}/Installer/.check_casesensitive"
-      fi
+    # Failures are checked explicitly, errexit doesn't apply to the commands of a group followed by ||
+    local CASE_PROBE_LOWER="${_arg_destination%/}/Installer/.check_casesensitive"
+    local CASE_PROBE_UPPER="${_arg_destination%/}/Installer/.Check_caseSensitive"
 
-      if [[ ! -f "${_arg_destination%/}/Installer/.Check_caseSensitive" ]]; then
-        touch "${_arg_destination%/}/Installer/.Check_caseSensitive"
-      fi
-
-      if [[ -f "${_arg_destination%/}/Installer/.check_casesensitive" ]]; then
-        # shellcheck disable=SC2034 # Used in some installers
-        IS_DESTINATION_CASE_SENSITIVE_FS="no"
-      else
-        # shellcheck disable=SC2034 # Used in some installers
-        IS_DESTINATION_CASE_SENSITIVE_FS="yes"
-      fi
-
-      rm -f "${_arg_destination%/}/Installer/.Check_caseSensitive"
-    } || {
+    if ! { rm -f "${CASE_PROBE_LOWER}" "${CASE_PROBE_UPPER}" && touch "${CASE_PROBE_UPPER}"; }; then
       term::step::failed_with_error "Unable to determine case sensitivity. Aborting installation."
       return 77 #E_PERM
-    }
+    fi
+
+    if [[ -f "${CASE_PROBE_LOWER}" ]]; then
+      # shellcheck disable=SC2034 # Used in some installers
+      IS_DESTINATION_CASE_SENSITIVE_FS="no"
+    else
+      # shellcheck disable=SC2034 # Used in some installers
+      IS_DESTINATION_CASE_SENSITIVE_FS="yes"
+    fi
+
+    if ! rm -f "${CASE_PROBE_UPPER}"; then
+      term::step::failed_with_error "Unable to determine case sensitivity. Aborting installation."
+      return 77 #E_PERM
+    fi
 
     DESTINATION_HOMIFIED="${_arg_destination}"
     { [[ "${DESTINATION_HOMIFIED}" =~ ^"${HOME}"(/|$) ]] && DESTINATION_HOMIFIED="~${_arg_destination#"${HOME}"}"; } || true
