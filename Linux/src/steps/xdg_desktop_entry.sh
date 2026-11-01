@@ -137,6 +137,9 @@ __step::xdg_desktop_entry::create() {
     mkdir -p "${DESKTOP_ENTRY_FOLDER}" 2>/dev/null
   fi
 
+  local GAME_BINARY_ESCAPED
+  GAME_BINARY_ESCAPED=$(__step::xdg_desktop_entry::escape_exec_argument "${_arg_destination%/}/System${UE_SYSTEM_FOLDER_SUFFIX:-}/${MAIN_BINARY_NAME}${ARCHITECTURE_BINARY_SUFFIX}")
+
   {
     echo "[Desktop Entry]"
     echo "Name=${PRODUCT_NAME}"
@@ -152,10 +155,10 @@ __step::xdg_desktop_entry::create() {
     fi
 
     if [[ -n "${PRODUCT_URLSCHEME:-}" ]]; then
-      echo "Exec="'"'"${_arg_destination%/}/System${UE_SYSTEM_FOLDER_SUFFIX:-}/${MAIN_BINARY_NAME}${ARCHITECTURE_BINARY_SUFFIX}"'"' %u
+      echo "Exec=\"${GAME_BINARY_ESCAPED}\" %u"
       echo "MimeType=x-scheme-handler/${PRODUCT_URLSCHEME};"
     else
-      echo "Exec="'"'"${_arg_destination%/}/System${UE_SYSTEM_FOLDER_SUFFIX:-}/${MAIN_BINARY_NAME}${ARCHITECTURE_BINARY_SUFFIX}"'"'
+      echo "Exec=\"${GAME_BINARY_ESCAPED}\""
     fi
 
     echo "Icon=${ICON_NAME}"
@@ -185,11 +188,14 @@ __step::xdg_desktop_entry::unrealed::create() {
     mkdir -p "${DESKTOP_ENTRY_FOLDER}" 2>/dev/null
   fi
 
+  local LAUNCHER_ESCAPED
+  LAUNCHER_ESCAPED=$(__step::xdg_desktop_entry::escape_exec_argument "${_arg_destination%/}/System${UEED_SYSTEM_FOLDER_SUFFIX:-}/UnrealEd-launch-linux.sh")
+
   {
     echo "[Desktop Entry]"
     echo "Name=UnrealEd for ${PRODUCT_NAME}"
 
-    echo "Exec="'"'"${_arg_destination%/}/System${UEED_SYSTEM_FOLDER_SUFFIX:-}/UnrealEd-launch-linux.sh"'"'
+    echo "Exec=\"${LAUNCHER_ESCAPED}\""
 
     echo "Icon=${ICON_NAME}"
     echo "Terminal=false"
@@ -198,6 +204,21 @@ __step::xdg_desktop_entry::unrealed::create() {
   } >"${DESKTOP_ENTRY_PATH}"
 
   __step::xdg_desktop_entry::mark_trusted "${DESKTOP_ENTRY_PATH}"
+}
+
+# Escapes a path to be used as a quoted argument of the Exec key. Within double quotes, the Desktop Entry
+# specification requires a backslash before the characters '"', '`', '$' and '\\', and the backslash of the
+# string value itself must be doubled on top of that. '%' introduces a field code, and is doubled.
+__step::xdg_desktop_entry::escape_exec_argument() {
+  local VALUE="${1:-}"
+
+  VALUE="${VALUE//\\/\\\\\\\\}"
+  VALUE="${VALUE//\"/\\\\\"}"
+  VALUE="${VALUE//\`/\\\\\`}"
+  VALUE="${VALUE//\$/\\\\\$}"
+  VALUE="${VALUE//%/%%}"
+
+  printf '%s' "${VALUE}"
 }
 
 # Desktop environments (KDE, GNOME) refuse to launch .desktop files on the desktop unless they are executable/trusted
