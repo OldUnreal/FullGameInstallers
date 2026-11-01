@@ -1289,6 +1289,9 @@ installer::entrypoint() {
     local IS_TARBALL="n"
     if __unarchiver::is_tarball "${ARCHIVE_PATH}"; then
       IS_TARBALL="y"
+    else
+      # Detect the 7z version here, as the extraction runs in a subshell where the result couldn't be cached
+      __unarchiver::read_7z_version
     fi
 
     local UNARCHIVE_PROGRESS
