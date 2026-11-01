@@ -3055,8 +3055,8 @@ EOFLAUNCHER
     local DESKTOP_ENTRY_FOLDER="${DESKTOP_ENTRY_PATH%/*}"
 
     local SOURCE_ICON="${_arg_destination%/}/${PRODUCT_ICONPATH:-Help/Unreal.ico}"
-    local ICON_NAME
-    ICON_NAME=$(__step::xdg_desktop_entry::get_icon_name "${SOURCE_ICON}" "OldUnreal_${PRODUCT_SHORTNAME}" || echo "${SOURCE_ICON}")
+    __step::xdg_desktop_entry::get_icon_name "${SOURCE_ICON}" "OldUnreal_${PRODUCT_SHORTNAME}" || true
+    local ICON_NAME="${STEP_XDG_DESKTOP_ENTRY_ICONS[${SOURCE_ICON}]:-${SOURCE_ICON}}"
 
     # Create destination folder if it doesn't exist
     if [[ ! -d "${DESKTOP_ENTRY_FOLDER}" ]]; then
@@ -3103,8 +3103,8 @@ EOFLAUNCHER
     local DESKTOP_ENTRY_FOLDER="${DESKTOP_ENTRY_PATH%/*}"
 
     local SOURCE_ICON="${_arg_destination%/}/${PRODUCT_ICONPATH:-Help/UnrealEd.ico}"
-    local ICON_NAME
-    ICON_NAME=$(__step::xdg_desktop_entry::get_icon_name "${SOURCE_ICON}" "OldUnreal_${PRODUCT_SHORTNAME}_UnrealEd" || echo "${SOURCE_ICON}")
+    __step::xdg_desktop_entry::get_icon_name "${SOURCE_ICON}" "OldUnreal_${PRODUCT_SHORTNAME}_UnrealEd" || true
+    local ICON_NAME="${STEP_XDG_DESKTOP_ENTRY_ICONS[${SOURCE_ICON}]:-${SOURCE_ICON}}"
 
     # Create destination folder if it doesn't exist
     if [[ ! -d "${DESKTOP_ENTRY_FOLDER}" ]]; then
@@ -3138,13 +3138,14 @@ EOFLAUNCHER
   }
 
   # Automatically create png files from .ico for DEs that don't support Windows icons
+  # The icon name to use is stored in STEP_XDG_DESKTOP_ENTRY_ICONS (keyed by the .ico path), and not printed,
+  # as the cache would be lost if this function ran in a subshell
   declare -A STEP_XDG_DESKTOP_ENTRY_ICONS=()
   __step::xdg_desktop_entry::get_icon_name() {
     local ICON_PATH="${1:-}"
     local TARGET_ICON_NAME="${2:-}"
 
     if [[ -n "${STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]:-}" ]]; then
-      echo "${STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]}"
       return 0
     fi
 
@@ -3154,7 +3155,6 @@ EOFLAUNCHER
 
     if ! command -v magick &>/dev/null; then
       STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]="${ICON_PATH}"
-      echo "${ICON_PATH}"
       return 0
     fi
 
@@ -3200,11 +3200,8 @@ EOFLAUNCHER
       fi
     done <<<"${ICON_INFORMATION}"
 
-    if [[ -n "${STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]:-}" ]]; then
-      echo "${STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]}"
-    else
+    if [[ -z "${STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]:-}" ]]; then
       STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]="${ICON_PATH}"
-      echo "${ICON_PATH}"
     fi
   }
   step::xdg_desktop_entry \
