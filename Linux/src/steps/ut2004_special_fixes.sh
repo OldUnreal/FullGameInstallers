@@ -62,7 +62,7 @@ step::ut2004_special_fixes() {
   fi
 
   if [[ "${LIBOMP_REQUIRES_SYMLINK}" == "yes" ]]; then
-    ln -s "${SYSTEM_PROVIDED_LIBOMP_PATH}" "${SYSTEM_FOLDER}/libomp.so.5"
+    ln -sf "${SYSTEM_PROVIDED_LIBOMP_PATH}" "${SYSTEM_FOLDER}/libomp.so.5"
   fi
 
   step::ut2004_special_fixes::replace_line_in_file "${HOME}/.ut2004/System/UT2004.ini" "MainMenuClass=GUI2K4.UT2K4MainMenu" "MainMenuClass=GUI2K4.UT2K4MainMenuWS"
