@@ -598,7 +598,7 @@ installer::entrypoint() {
     case "${PRODUCT_SHORTNAME}" in
     UT2004)
       ARCHITECTURE_SUFFIX='powerpc64le'
-      ARCHITECTURE_BINARY_SUFFIX='-powerpc64le'
+      ARCHITECTURE_BINARY_SUFFIX=''
       UE_SYSTEM_FOLDER_SUFFIX='PPC64LE'
       UEED_SYSTEM_FOLDER_SUFFIX='NOT_SUPPORTED'
       ;;
