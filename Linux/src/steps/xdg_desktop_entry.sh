@@ -129,13 +129,16 @@ __step::xdg_desktop_entry::create() {
   local DESKTOP_ENTRY_FOLDER="${DESKTOP_ENTRY_PATH%/*}"
 
   local SOURCE_ICON="${_arg_destination%/}/${PRODUCT_ICONPATH:-Help/Unreal.ico}"
-  local ICON_NAME
-  ICON_NAME=$(__step::xdg_desktop_entry::get_icon_name "${SOURCE_ICON}" "OldUnreal_${PRODUCT_SHORTNAME}" || echo "${SOURCE_ICON}")
+  __step::xdg_desktop_entry::get_icon_name "${SOURCE_ICON}" "OldUnreal_${PRODUCT_SHORTNAME}" || true
+  local ICON_NAME="${STEP_XDG_DESKTOP_ENTRY_ICONS[${SOURCE_ICON}]:-${SOURCE_ICON}}"
 
   # Create destination folder if it doesn't exist
   if [[ ! -d "${DESKTOP_ENTRY_FOLDER}" ]]; then
     mkdir -p "${DESKTOP_ENTRY_FOLDER}" 2>/dev/null
   fi
+
+  local GAME_BINARY_ESCAPED
+  GAME_BINARY_ESCAPED=$(__step::xdg_desktop_entry::escape_exec_argument "${_arg_destination%/}/System${UE_SYSTEM_FOLDER_SUFFIX:-}/${MAIN_BINARY_NAME}${ARCHITECTURE_BINARY_SUFFIX}")
 
   {
     echo "[Desktop Entry]"
@@ -152,10 +155,10 @@ __step::xdg_desktop_entry::create() {
     fi
 
     if [[ -n "${PRODUCT_URLSCHEME:-}" ]]; then
-      echo "Exec="'"'"${_arg_destination%/}/System${UE_SYSTEM_FOLDER_SUFFIX:-}/${MAIN_BINARY_NAME}${ARCHITECTURE_BINARY_SUFFIX}"'"' %u
+      echo "Exec=\"${GAME_BINARY_ESCAPED}\" %u"
       echo "MimeType=x-scheme-handler/${PRODUCT_URLSCHEME};"
     else
-      echo "Exec="'"'"${_arg_destination%/}/System${UE_SYSTEM_FOLDER_SUFFIX:-}/${MAIN_BINARY_NAME}${ARCHITECTURE_BINARY_SUFFIX}"'"'
+      echo "Exec=\"${GAME_BINARY_ESCAPED}\""
     fi
 
     echo "Icon=${ICON_NAME}"
@@ -177,19 +180,22 @@ __step::xdg_desktop_entry::unrealed::create() {
   local DESKTOP_ENTRY_FOLDER="${DESKTOP_ENTRY_PATH%/*}"
 
   local SOURCE_ICON="${_arg_destination%/}/${PRODUCT_ICONPATH:-Help/UnrealEd.ico}"
-  local ICON_NAME
-  ICON_NAME=$(__step::xdg_desktop_entry::get_icon_name "${SOURCE_ICON}" "OldUnreal_${PRODUCT_SHORTNAME}_UnrealEd" || echo "${SOURCE_ICON}")
+  __step::xdg_desktop_entry::get_icon_name "${SOURCE_ICON}" "OldUnreal_${PRODUCT_SHORTNAME}_UnrealEd" || true
+  local ICON_NAME="${STEP_XDG_DESKTOP_ENTRY_ICONS[${SOURCE_ICON}]:-${SOURCE_ICON}}"
 
   # Create destination folder if it doesn't exist
   if [[ ! -d "${DESKTOP_ENTRY_FOLDER}" ]]; then
     mkdir -p "${DESKTOP_ENTRY_FOLDER}" 2>/dev/null
   fi
 
+  local LAUNCHER_ESCAPED
+  LAUNCHER_ESCAPED=$(__step::xdg_desktop_entry::escape_exec_argument "${_arg_destination%/}/System${UEED_SYSTEM_FOLDER_SUFFIX:-}/UnrealEd-launch-linux.sh")
+
   {
     echo "[Desktop Entry]"
     echo "Name=UnrealEd for ${PRODUCT_NAME}"
 
-    echo "Exec="'"'"${_arg_destination%/}/System${UEED_SYSTEM_FOLDER_SUFFIX:-}/UnrealEd-launch-linux.sh"'"'
+    echo "Exec=\"${LAUNCHER_ESCAPED}\""
 
     echo "Icon=${ICON_NAME}"
     echo "Terminal=false"
@@ -198,6 +204,21 @@ __step::xdg_desktop_entry::unrealed::create() {
   } >"${DESKTOP_ENTRY_PATH}"
 
   __step::xdg_desktop_entry::mark_trusted "${DESKTOP_ENTRY_PATH}"
+}
+
+# Escapes a path to be used as a quoted argument of the Exec key. Within double quotes, the Desktop Entry
+# specification requires a backslash before the characters '"', '`', '$' and '\\', and the backslash of the
+# string value itself must be doubled on top of that. '%' introduces a field code, and is doubled.
+__step::xdg_desktop_entry::escape_exec_argument() {
+  local VALUE="${1:-}"
+
+  VALUE="${VALUE//\\/\\\\\\\\}"
+  VALUE="${VALUE//\"/\\\\\"}"
+  VALUE="${VALUE//\`/\\\\\`}"
+  VALUE="${VALUE//\$/\\\\\$}"
+  VALUE="${VALUE//%/%%}"
+
+  printf '%s' "${VALUE}"
 }
 
 # Desktop environments (KDE, GNOME) refuse to launch .desktop files on the desktop unless they are executable/trusted
@@ -212,13 +233,14 @@ __step::xdg_desktop_entry::mark_trusted() {
 }
 
 # Automatically create png files from .ico for DEs that don't support Windows icons
+# The icon name to use is stored in STEP_XDG_DESKTOP_ENTRY_ICONS (keyed by the .ico path), and not printed,
+# as the cache would be lost if this function ran in a subshell
 declare -A STEP_XDG_DESKTOP_ENTRY_ICONS=()
 __step::xdg_desktop_entry::get_icon_name() {
   local ICON_PATH="${1:-}"
   local TARGET_ICON_NAME="${2:-}"
 
   if [[ -n "${STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]:-}" ]]; then
-    echo "${STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]}"
     return 0
   fi
 
@@ -228,7 +250,6 @@ __step::xdg_desktop_entry::get_icon_name() {
 
   if ! command -v magick &>/dev/null; then
     STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]="${ICON_PATH}"
-    echo "${ICON_PATH}"
     return 0
   fi
 
@@ -274,10 +295,7 @@ __step::xdg_desktop_entry::get_icon_name() {
     fi
   done <<<"${ICON_INFORMATION}"
 
-  if [[ -n "${STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]:-}" ]]; then
-    echo "${STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]}"
-  else
+  if [[ -z "${STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]:-}" ]]; then
     STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]="${ICON_PATH}"
-    echo "${ICON_PATH}"
   fi
 }

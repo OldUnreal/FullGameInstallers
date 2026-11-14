@@ -342,26 +342,83 @@ installer::entrypoint() {
   local STEP_PROGRESS_SPINNER_CHARS=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
   local STEP_PROGRESS_SPINNER_CURRENT=0
 
+  # Width of the terminal the steps are displayed on, 0 when it can't be determined (e.g. output is not a terminal)
+  local TERM_COLUMNS=0
+
+  # The step name as displayed while the step is running
+  local STEP_FITTED_NAME=""
+
+  term::update_columns() {
+    local TERM_SIZE
+
+    TERM_COLUMNS=0
+
+    if TERM_SIZE=$(stty size <&6 2>/dev/null) && [[ "${TERM_SIZE}" =~ ^[0-9]+\ ([0-9]+)$ ]]; then
+      TERM_COLUMNS="${BASH_REMATCH[1]}"
+    fi
+  }
+
+  # While a step is running, its line is rewritten with a carriage return, which can't erase a line that wrapped
+  # onto the next row of the terminal. The step name is shortened to stay on one row, with one column to spare
+  # so that the cursor doesn't wrap. The final line of a step is not affected, nothing is rewritten after it.
+  term::step::fit_name() {
+    # Room left once " [ x ] " is displayed
+    local STEP_NAME_ROOM=$((TERM_COLUMNS - 1 - 7))
+
+    STEP_FITTED_NAME="${CURRENT_STEP_NAME}"
+
+    if [[ "${TERM_COLUMNS}" -gt 0 ]] && [[ "${#STEP_FITTED_NAME}" -gt "${STEP_NAME_ROOM}" ]]; then
+      if [[ "${STEP_NAME_ROOM}" -ge 2 ]]; then
+        STEP_FITTED_NAME="${STEP_FITTED_NAME:0:STEP_NAME_ROOM-1}…"
+      else
+        STEP_FITTED_NAME=""
+      fi
+    fi
+  }
+
   term::step::new() {
     CURRENT_STEP_NAME="$*"
+    term::update_columns
+    term::step::fit_name
 
-    echo -en " $(ansi::styled "[   ]" "${ansi_stylenum[bright]}") $*"
+    echo -en " $(ansi::styled "[   ]" "${ansi_stylenum[bright]}") ${STEP_FITTED_NAME}"
   }
 
   term::step::replace() {
     CURRENT_STEP_NAME="$*"
+    term::update_columns
+    term::step::fit_name
 
-    echo -en "\r\033[K $(ansi::styled "[   ]" "${ansi_stylenum[bright]}") $*"
+    echo -en "\r\033[K $(ansi::styled "[   ]" "${ansi_stylenum[bright]}") ${STEP_FITTED_NAME}"
   }
 
   term::step::progress() {
     local STEP_PROGRESS_TEXT=""
 
+    term::step::fit_name
+
     if [[ -n "${1:-}" ]]; then
-      STEP_PROGRESS_TEXT="$(ansi::styled " ($*)" "${ansi_stylenum[dim]}")"
+      local STEP_PROGRESS_LABEL="$*"
+
+      if [[ "${TERM_COLUMNS}" -gt 0 ]]; then
+        # Room left once " [ x ] ", the step name and " ()" are displayed
+        local STEP_PROGRESS_ROOM=$((TERM_COLUMNS - 1 - 7 - ${#STEP_FITTED_NAME} - 3))
+
+        if [[ "${#STEP_PROGRESS_LABEL}" -gt "${STEP_PROGRESS_ROOM}" ]]; then
+          if [[ "${STEP_PROGRESS_ROOM}" -ge 2 ]]; then
+            STEP_PROGRESS_LABEL="${STEP_PROGRESS_LABEL:0:STEP_PROGRESS_ROOM-1}…"
+          else
+            STEP_PROGRESS_LABEL=""
+          fi
+        fi
+      fi
+
+      if [[ -n "${STEP_PROGRESS_LABEL}" ]]; then
+        STEP_PROGRESS_TEXT="$(ansi::styled " (${STEP_PROGRESS_LABEL})" "${ansi_stylenum[dim]}")"
+      fi
     fi
 
-    echo -en "\r $(ansi::styled "[" "${ansi_stylenum[bright]}") $(ansi::styled "${STEP_PROGRESS_SPINNER_CHARS[$STEP_PROGRESS_SPINNER_CURRENT]}" "${ansi_stylenum[dim]}") $(ansi::styled "]" "${ansi_stylenum[bright]}") ${CURRENT_STEP_NAME}${STEP_PROGRESS_TEXT}\033[K"
+    echo -en "\r $(ansi::styled "[" "${ansi_stylenum[bright]}") $(ansi::styled "${STEP_PROGRESS_SPINNER_CHARS[$STEP_PROGRESS_SPINNER_CURRENT]}" "${ansi_stylenum[dim]}") $(ansi::styled "]" "${ansi_stylenum[bright]}") ${STEP_FITTED_NAME}${STEP_PROGRESS_TEXT}\033[K"
     STEP_PROGRESS_SPINNER_CURRENT=$((STEP_PROGRESS_SPINNER_CURRENT + 1))
 
     if [[ "${STEP_PROGRESS_SPINNER_CURRENT}" -ge "${#STEP_PROGRESS_SPINNER_CHARS[@]}" ]]; then
@@ -456,10 +513,17 @@ installer::entrypoint() {
     local CAN_WRITE="y"
     trap 'CAN_WRITE="n"' SIGPIPE
 
+    # When read times out in the middle of a line, the part already consumed is returned in the variable, and
+    # the rest of the line comes with the next read. It is carried over, or the start of the line would be lost.
+    local PARTIAL_UPDATE=""
+
     while kill -0 "${PROC_SUB_PID}" 2>/dev/null; do
       while IFS= read -r -u 3 -t 0.001 CURRENT_UPDATE; do
-        LAST_UPDATE="${CURRENT_UPDATE}"
+        LAST_UPDATE="${PARTIAL_UPDATE}${CURRENT_UPDATE}"
+        PARTIAL_UPDATE=""
       done
+
+      PARTIAL_UPDATE+="${CURRENT_UPDATE}"
 
       if [[ "${CAN_WRITE}" == "y" ]]; then
         echo "${LAST_UPDATE}" 2>/dev/null
@@ -476,7 +540,8 @@ installer::entrypoint() {
     if [[ "${CAN_WRITE}" == "y" ]]; then
       # Final drain of remaining data
       while IFS= read -r -u 3 CURRENT_UPDATE; do
-        LAST_UPDATE="${CURRENT_UPDATE}"
+        LAST_UPDATE="${PARTIAL_UPDATE}${CURRENT_UPDATE}"
+        PARTIAL_UPDATE=""
       done
       echo "${LAST_UPDATE}"
     else
@@ -829,7 +894,7 @@ installer::entrypoint() {
     ARCHIVE_FILENAME=$(helper::string::field "${CURRENT_DOWNLOAD_URL_SET}" 1)
     ARCHIVE_FILENAME="${ARCHIVE_FILENAME##*/}"
     ARCHIVE_FILENAME="${ARCHIVE_FILENAME%%\?*}"
-    ARCHIVE_FILENAME=$(printf '%b' "${ARCHIVE_FILENAME//%/\\x}")
+    ARCHIVE_FILENAME=$(__downloader::percent_decode "${ARCHIVE_FILENAME}")
 
     if [[ -z "${ARCHIVE_FILENAME}" ]] || [[ "${ARCHIVE_FILENAME}" == */* ]] || [[ "${ARCHIVE_FILENAME}" == "." ]] || [[ "${ARCHIVE_FILENAME}" == ".." ]]; then
       return 1
@@ -884,6 +949,25 @@ installer::entrypoint() {
     term::step::complete
   }
 
+  # Decodes %XX sequences only, any other character (including backslashes) is kept as is
+  __downloader::percent_decode() {
+    local ENCODED="${1:-}"
+    local DECODED=""
+    local DECODED_CHAR
+    local PERCENT_ESCAPE_REGEX='^([^%]*)%([0-9A-Fa-f]{2})(.*)$'
+
+    while [[ "${ENCODED}" =~ ${PERCENT_ESCAPE_REGEX} ]]; do
+      printf -v DECODED_CHAR '\\x%s' "${BASH_REMATCH[2]}"
+      # shellcheck disable=SC2059 # The format is built from two validated hexadecimal digits
+      printf -v DECODED_CHAR "${DECODED_CHAR}"
+
+      DECODED+="${BASH_REMATCH[1]}${DECODED_CHAR}"
+      ENCODED="${BASH_REMATCH[3]}"
+    done
+
+    printf '%s' "${DECODED}${ENCODED}"
+  }
+
   __downloader::verify_file() {
     local FILE_PATH="${1:-}"
     local EXPECTED_SIZE="${2:-}"
@@ -902,7 +986,8 @@ installer::entrypoint() {
       local FILE_HASH
       FILE_HASH=$(helper::progress::run_with_progress "Verifying file" downloader::compute_sha256sum "${FILE_PATH}")
 
-      if [[ -n "${FILE_HASH}" ]] && [[ "${FILE_HASH}" != "${EXPECTED_HASH}" ]]; then
+      # An empty hash (no sha256 tool, or a read error) must not be mistaken for a match
+      if [[ "${FILE_HASH}" != "${EXPECTED_HASH}" ]]; then
         return 1
       fi
     fi
@@ -1271,6 +1356,9 @@ installer::entrypoint() {
     local IS_TARBALL="n"
     if __unarchiver::is_tarball "${ARCHIVE_PATH}"; then
       IS_TARBALL="y"
+    else
+      # Detect the 7z version here, as the extraction runs in a subshell where the result couldn't be cached
+      __unarchiver::read_7z_version
     fi
 
     local UNARCHIVE_PROGRESS
@@ -1837,28 +1925,27 @@ installer::entrypoint() {
     fi
 
     # Check Case-Sensitivity
-    {
-      if [[ -f "${_arg_destination%/}/Installer/.check_casesensitive" ]]; then
-        rm -f "${_arg_destination%/}/Installer/.check_casesensitive"
-      fi
+    # Failures are checked explicitly, errexit doesn't apply to the commands of a group followed by ||
+    local CASE_PROBE_LOWER="${_arg_destination%/}/Installer/.check_casesensitive"
+    local CASE_PROBE_UPPER="${_arg_destination%/}/Installer/.Check_caseSensitive"
 
-      if [[ ! -f "${_arg_destination%/}/Installer/.Check_caseSensitive" ]]; then
-        touch "${_arg_destination%/}/Installer/.Check_caseSensitive"
-      fi
-
-      if [[ -f "${_arg_destination%/}/Installer/.check_casesensitive" ]]; then
-        # shellcheck disable=SC2034 # Used in some installers
-        IS_DESTINATION_CASE_SENSITIVE_FS="no"
-      else
-        # shellcheck disable=SC2034 # Used in some installers
-        IS_DESTINATION_CASE_SENSITIVE_FS="yes"
-      fi
-
-      rm -f "${_arg_destination%/}/Installer/.Check_caseSensitive"
-    } || {
+    if ! { rm -f "${CASE_PROBE_LOWER}" "${CASE_PROBE_UPPER}" && touch "${CASE_PROBE_UPPER}"; }; then
       term::step::failed_with_error "Unable to determine case sensitivity. Aborting installation."
       return 77 #E_PERM
-    }
+    fi
+
+    if [[ -f "${CASE_PROBE_LOWER}" ]]; then
+      # shellcheck disable=SC2034 # Used in some installers
+      IS_DESTINATION_CASE_SENSITIVE_FS="no"
+    else
+      # shellcheck disable=SC2034 # Used in some installers
+      IS_DESTINATION_CASE_SENSITIVE_FS="yes"
+    fi
+
+    if ! rm -f "${CASE_PROBE_UPPER}"; then
+      term::step::failed_with_error "Unable to determine case sensitivity. Aborting installation."
+      return 77 #E_PERM
+    fi
 
     DESTINATION_HOMIFIED="${_arg_destination}"
     { [[ "${DESTINATION_HOMIFIED}" =~ ^"${HOME}"(/|$) ]] && DESTINATION_HOMIFIED="~${_arg_destination#"${HOME}"}"; } || true
@@ -1994,13 +2081,8 @@ You may read the Terms of Service at this URL:
 
     local METADATA_FILTER
     METADATA_FILTER=$(step::read_patch_meta_from_github::metadata_filter "${PATCH_FOR_OS}" "${ARCHITECTURE_SUFFIX}")
-    local JQ_FILTER
 
-    { JQ_FILTER+=' | select(.browser_download_url | ascii_downcase | test("'"${METADATA_FILTER}"'"))'; } ||
-      {
-        term::step::failed_with_error "Implementation error, step::read_patch_meta_from_github::metadata_filter runtime error."
-        return 1
-      }
+    JQ_FILTER+=' | select(.browser_download_url | ascii_downcase | test("'"${METADATA_FILTER}"'"))'
 
     local PATCH_DOWNLOAD_URL
     { PATCH_DOWNLOAD_URL=$(echo "${PATCH_METADATA_JSON}" | jq -r "[ ${JQ_FILTER} ] | .[0].browser_download_url // empty"); } ||
@@ -2068,9 +2150,9 @@ You may read the Terms of Service at this URL:
       for POSSIBLE_EXISTING_FILE in "${POSSIBLE_EXISTING_FILES_TO_CHECK[@]}"; do
         # If the file exist and isn't a partial download
         if [[ -f "${POSSIBLE_EXISTING_FILE}" ]] && [[ ! -f "${POSSIBLE_EXISTING_FILE}.aria2" ]]; then
-          local EXISTING_FILESIZE EXISTING_HASH
+          local EXISTING_FILESIZE EXISTING_HASH=""
+          local IS_EXISTING_HASH_COMPUTED="no"
           EXISTING_FILESIZE=$(stat --format=%s "${POSSIBLE_EXISTING_FILE}")
-          EXISTING_HASH=$(helper::progress::run_with_progress "Verifying existing file" downloader::compute_sha256sum "${POSSIBLE_EXISTING_FILE}")
 
           local SET_INDEX=0
           local CURRENT_DOWNLOAD_URL_SET
@@ -2098,8 +2180,16 @@ You may read the Terms of Service at this URL:
               continue
             fi
 
-            if [[ -n "${DOWNLOAD_HASH}" ]] && [[ "${EXISTING_HASH}" != "${DOWNLOAD_HASH}" ]]; then
-              continue
+            if [[ -n "${DOWNLOAD_HASH}" ]]; then
+              # Hashing is slow, only do it once the size matches an expected file, and only once per file
+              if [[ "${IS_EXISTING_HASH_COMPUTED}" == "no" ]]; then
+                EXISTING_HASH=$(helper::progress::run_with_progress "Verifying existing file" downloader::compute_sha256sum "${POSSIBLE_EXISTING_FILE}")
+                IS_EXISTING_HASH_COMPUTED="yes"
+              fi
+
+              if [[ "${EXISTING_HASH}" != "${DOWNLOAD_HASH}" ]]; then
+                continue
+              fi
             fi
 
             IS_DOWNLOAD_SKIPPED="yes"
@@ -2313,7 +2403,7 @@ You may read the Terms of Service at this URL:
 
     # If the file count cannot be determined, extraction still proceeds without a percentage
     local RAW_TOTAL_FILES_TO_EXTRACT TOTAL_FILES_TO_EXTRACT=0
-    RAW_TOTAL_FILES_TO_EXTRACT=$("${UNSHIELD_BIN}" l "${CAB_FILE}" | tail -n1)
+    RAW_TOTAL_FILES_TO_EXTRACT=$("${UNSHIELD_BIN}" l "${CAB_FILE}" | tail -n1) || true
 
     local LINE_MATCH_REGEX='^\s*([0-9]+)'
 
@@ -2482,7 +2572,7 @@ You may read the Terms of Service at this URL:
     fi
 
     if [[ "${LIBOMP_REQUIRES_SYMLINK}" == "yes" ]]; then
-      ln -s "${SYSTEM_PROVIDED_LIBOMP_PATH}" "${SYSTEM_FOLDER}/libomp.so.5"
+      ln -sf "${SYSTEM_PROVIDED_LIBOMP_PATH}" "${SYSTEM_FOLDER}/libomp.so.5"
     fi
 
     step::ut2004_special_fixes::replace_line_in_file "${HOME}/.ut2004/System/UT2004.ini" "MainMenuClass=GUI2K4.UT2K4MainMenu" "MainMenuClass=GUI2K4.UT2K4MainMenuWS"
@@ -2506,16 +2596,34 @@ You may read the Terms of Service at this URL:
       return 0
     fi
 
-    local FILE_CONTENTS FILE_LINE
-    FILE_CONTENTS="$(cat "${FILENAME}")"
+    # Edit the target of a symbolic link rather than replacing the link
+    FILENAME=$(realpath "${FILENAME}")
 
-    local FILE_NEW_CONTENTS=""
-
+    local FILE_LINE
     local IS_CONTENT_FOUND="no"
 
-    local LINE_SEPARATOR=""
+    # Leave the file alone, and don't require to write next to it, when there is nothing to replace
+    while IFS= read -r FILE_LINE || [[ -n "${FILE_LINE}" ]]; do
+      if [[ "${FILE_LINE%$'\r'}" == "${LINE_TO_REPLACE}" ]]; then
+        IS_CONTENT_FOUND="yes"
+        break
+      fi
+    done <"${FILENAME}"
 
-    while IFS= read -r FILE_LINE; do
+    if [[ "${IS_CONTENT_FOUND}" != "yes" ]]; then
+      return 0
+    fi
+
+    # The new content is written next to the file, then moved over it, so an interrupted write can't truncate the
+    # ini. If the folder can't be written to, the file is rewritten in place, which only needs the file to be writable.
+    local TEMP_FILENAME=""
+    local IS_TEMP_FILE_BESIDE="yes"
+    TEMP_FILENAME=$(mktemp "${FILENAME}.XXXXXX" 2>/dev/null) || {
+      IS_TEMP_FILE_BESIDE="no"
+      TEMP_FILENAME=$(mktemp)
+    }
+
+    while IFS= read -r FILE_LINE || [[ -n "${FILE_LINE}" ]]; do
       # Ini files may use Windows line endings, preserve them
       local LINE_ENDING=""
       if [[ "${FILE_LINE}" == *$'\r' ]]; then
@@ -2523,17 +2631,21 @@ You may read the Terms of Service at this URL:
       fi
 
       if [[ "${FILE_LINE%$'\r'}" == "${LINE_TO_REPLACE}" ]]; then
-        IS_CONTENT_FOUND="yes"
-        FILE_NEW_CONTENTS="${FILE_NEW_CONTENTS}${LINE_SEPARATOR}${REPLACEMENT_LINE}${LINE_ENDING}"
+        printf '%s\n' "${REPLACEMENT_LINE}${LINE_ENDING}"
       else
-        FILE_NEW_CONTENTS="${FILE_NEW_CONTENTS}${LINE_SEPARATOR}${FILE_LINE}"
+        printf '%s\n' "${FILE_LINE}"
       fi
+    done <"${FILENAME}" >"${TEMP_FILENAME}"
 
-      LINE_SEPARATOR=$'\n'
-    done <<<"${FILE_CONTENTS}"
-
-    if [[ "${IS_CONTENT_FOUND}" == "yes" ]]; then
-      echo "${FILE_NEW_CONTENTS}" >"${FILENAME}"
+    if [[ "${IS_TEMP_FILE_BESIDE}" == "yes" ]]; then
+      chmod --reference="${FILENAME}" "${TEMP_FILENAME}"
+      mv -f "${TEMP_FILENAME}" "${FILENAME}"
+    else
+      cat "${TEMP_FILENAME}" >"${FILENAME}" || {
+        rm -f "${TEMP_FILENAME}"
+        return 1
+      }
+      rm -f "${TEMP_FILENAME}"
     fi
   }
 
@@ -3054,13 +3166,16 @@ EOFLAUNCHER
     local DESKTOP_ENTRY_FOLDER="${DESKTOP_ENTRY_PATH%/*}"
 
     local SOURCE_ICON="${_arg_destination%/}/${PRODUCT_ICONPATH:-Help/Unreal.ico}"
-    local ICON_NAME
-    ICON_NAME=$(__step::xdg_desktop_entry::get_icon_name "${SOURCE_ICON}" "OldUnreal_${PRODUCT_SHORTNAME}" || echo "${SOURCE_ICON}")
+    __step::xdg_desktop_entry::get_icon_name "${SOURCE_ICON}" "OldUnreal_${PRODUCT_SHORTNAME}" || true
+    local ICON_NAME="${STEP_XDG_DESKTOP_ENTRY_ICONS[${SOURCE_ICON}]:-${SOURCE_ICON}}"
 
     # Create destination folder if it doesn't exist
     if [[ ! -d "${DESKTOP_ENTRY_FOLDER}" ]]; then
       mkdir -p "${DESKTOP_ENTRY_FOLDER}" 2>/dev/null
     fi
+
+    local GAME_BINARY_ESCAPED
+    GAME_BINARY_ESCAPED=$(__step::xdg_desktop_entry::escape_exec_argument "${_arg_destination%/}/System${UE_SYSTEM_FOLDER_SUFFIX:-}/${MAIN_BINARY_NAME}${ARCHITECTURE_BINARY_SUFFIX}")
 
     {
       echo "[Desktop Entry]"
@@ -3077,10 +3192,10 @@ EOFLAUNCHER
       fi
 
       if [[ -n "${PRODUCT_URLSCHEME:-}" ]]; then
-        echo "Exec="'"'"${_arg_destination%/}/System${UE_SYSTEM_FOLDER_SUFFIX:-}/${MAIN_BINARY_NAME}${ARCHITECTURE_BINARY_SUFFIX}"'"' %u
+        echo "Exec=\"${GAME_BINARY_ESCAPED}\" %u"
         echo "MimeType=x-scheme-handler/${PRODUCT_URLSCHEME};"
       else
-        echo "Exec="'"'"${_arg_destination%/}/System${UE_SYSTEM_FOLDER_SUFFIX:-}/${MAIN_BINARY_NAME}${ARCHITECTURE_BINARY_SUFFIX}"'"'
+        echo "Exec=\"${GAME_BINARY_ESCAPED}\""
       fi
 
       echo "Icon=${ICON_NAME}"
@@ -3102,19 +3217,22 @@ EOFLAUNCHER
     local DESKTOP_ENTRY_FOLDER="${DESKTOP_ENTRY_PATH%/*}"
 
     local SOURCE_ICON="${_arg_destination%/}/${PRODUCT_ICONPATH:-Help/UnrealEd.ico}"
-    local ICON_NAME
-    ICON_NAME=$(__step::xdg_desktop_entry::get_icon_name "${SOURCE_ICON}" "OldUnreal_${PRODUCT_SHORTNAME}_UnrealEd" || echo "${SOURCE_ICON}")
+    __step::xdg_desktop_entry::get_icon_name "${SOURCE_ICON}" "OldUnreal_${PRODUCT_SHORTNAME}_UnrealEd" || true
+    local ICON_NAME="${STEP_XDG_DESKTOP_ENTRY_ICONS[${SOURCE_ICON}]:-${SOURCE_ICON}}"
 
     # Create destination folder if it doesn't exist
     if [[ ! -d "${DESKTOP_ENTRY_FOLDER}" ]]; then
       mkdir -p "${DESKTOP_ENTRY_FOLDER}" 2>/dev/null
     fi
 
+    local LAUNCHER_ESCAPED
+    LAUNCHER_ESCAPED=$(__step::xdg_desktop_entry::escape_exec_argument "${_arg_destination%/}/System${UEED_SYSTEM_FOLDER_SUFFIX:-}/UnrealEd-launch-linux.sh")
+
     {
       echo "[Desktop Entry]"
       echo "Name=UnrealEd for ${PRODUCT_NAME}"
 
-      echo "Exec="'"'"${_arg_destination%/}/System${UEED_SYSTEM_FOLDER_SUFFIX:-}/UnrealEd-launch-linux.sh"'"'
+      echo "Exec=\"${LAUNCHER_ESCAPED}\""
 
       echo "Icon=${ICON_NAME}"
       echo "Terminal=false"
@@ -3123,6 +3241,21 @@ EOFLAUNCHER
     } >"${DESKTOP_ENTRY_PATH}"
 
     __step::xdg_desktop_entry::mark_trusted "${DESKTOP_ENTRY_PATH}"
+  }
+
+  # Escapes a path to be used as a quoted argument of the Exec key. Within double quotes, the Desktop Entry
+  # specification requires a backslash before the characters '"', '`', '$' and '\\', and the backslash of the
+  # string value itself must be doubled on top of that. '%' introduces a field code, and is doubled.
+  __step::xdg_desktop_entry::escape_exec_argument() {
+    local VALUE="${1:-}"
+
+    VALUE="${VALUE//\\/\\\\\\\\}"
+    VALUE="${VALUE//\"/\\\\\"}"
+    VALUE="${VALUE//\`/\\\\\`}"
+    VALUE="${VALUE//\$/\\\\\$}"
+    VALUE="${VALUE//%/%%}"
+
+    printf '%s' "${VALUE}"
   }
 
   # Desktop environments (KDE, GNOME) refuse to launch .desktop files on the desktop unless they are executable/trusted
@@ -3137,13 +3270,14 @@ EOFLAUNCHER
   }
 
   # Automatically create png files from .ico for DEs that don't support Windows icons
+  # The icon name to use is stored in STEP_XDG_DESKTOP_ENTRY_ICONS (keyed by the .ico path), and not printed,
+  # as the cache would be lost if this function ran in a subshell
   declare -A STEP_XDG_DESKTOP_ENTRY_ICONS=()
   __step::xdg_desktop_entry::get_icon_name() {
     local ICON_PATH="${1:-}"
     local TARGET_ICON_NAME="${2:-}"
 
     if [[ -n "${STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]:-}" ]]; then
-      echo "${STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]}"
       return 0
     fi
 
@@ -3153,7 +3287,6 @@ EOFLAUNCHER
 
     if ! command -v magick &>/dev/null; then
       STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]="${ICON_PATH}"
-      echo "${ICON_PATH}"
       return 0
     fi
 
@@ -3199,11 +3332,8 @@ EOFLAUNCHER
       fi
     done <<<"${ICON_INFORMATION}"
 
-    if [[ -n "${STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]:-}" ]]; then
-      echo "${STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]}"
-    else
+    if [[ -z "${STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]:-}" ]]; then
       STEP_XDG_DESKTOP_ENTRY_ICONS[${ICON_PATH}]="${ICON_PATH}"
-      echo "${ICON_PATH}"
     fi
   }
   step::xdg_desktop_entry \

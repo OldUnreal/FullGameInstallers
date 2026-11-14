@@ -19,30 +19,54 @@ step::ut99_special_fixes() {
       continue
     fi
 
-    # Iterate through all files (ignoring subfolders)
+    # An old folder that is the main one (a symbolic link, in either direction) has nothing to migrate, and
+    # its files must not be treated as leftovers. Only the link itself is removed.
+    if [[ "$(realpath -m "${_arg_destination%/}/System${UE_OLD_SYSTEM_SUFFIX}")" == "$(realpath -m "${_arg_destination%/}/System")" ]]; then
+      if [[ -L "${_arg_destination%/}/System${UE_OLD_SYSTEM_SUFFIX}" ]]; then
+        rm -f "${_arg_destination%/}/System${UE_OLD_SYSTEM_SUFFIX}"
+      fi
+      continue
+    fi
+
+    # Move everything that isn't already in the main System folder. When the old folder is a symbolic link, the
+    # folder it points to isn't ours and other installations may use it: its content is copied, not taken out.
     for OLD_SYS_FILE in "${_arg_destination%/}/System${UE_OLD_SYSTEM_SUFFIX}"/*; do
-      # If it isn't a regular file, ignore
-      if [[ ! -f "${OLD_SYS_FILE}" ]]; then
+      # The glob is returned as is when the folder is empty
+      if [[ ! -e "${OLD_SYS_FILE}" ]] && [[ ! -L "${OLD_SYS_FILE}" ]]; then
         continue
       fi
 
       OLD_SYS_BASENAME="${OLD_SYS_FILE##*/}"
 
-      # If the file already exists in the main System folder, we don't want to overwrite it
-      if [[ -f "${_arg_destination%/}/System/${OLD_SYS_BASENAME}" ]]; then
+      if [[ -e "${_arg_destination%/}/System/${OLD_SYS_BASENAME}" ]]; then
+        # Files already present in the main System folder win, the old copy is a leftover. This is not done
+        # through a symbolic link, the folder it points to isn't ours.
+        if [[ -f "${OLD_SYS_FILE}" ]] && [[ ! -L "${_arg_destination%/}/System${UE_OLD_SYSTEM_SUFFIX}" ]]; then
+          rm -f "${OLD_SYS_FILE}"
+        fi
         continue
       fi
 
-      mv -f "${OLD_SYS_FILE}" "${_arg_destination%/}/System/${OLD_SYS_BASENAME}" || {
-        term::step::failed_with_error "Failed to move ${OLD_SYS_BASENAME} from System${UE_OLD_SYSTEM_SUFFIX} to System. Aborting installation."
-        return 77 #E_PERM
-      }
+      if [[ -L "${_arg_destination%/}/System${UE_OLD_SYSTEM_SUFFIX}" ]]; then
+        cp -a -- "${OLD_SYS_FILE}" "${_arg_destination%/}/System/${OLD_SYS_BASENAME}" || {
+          term::step::failed_with_error "Failed to copy ${OLD_SYS_BASENAME} from System${UE_OLD_SYSTEM_SUFFIX} to System. Aborting installation."
+          return 77 #E_PERM
+        }
+      else
+        mv -f "${OLD_SYS_FILE}" "${_arg_destination%/}/System/${OLD_SYS_BASENAME}" || {
+          term::step::failed_with_error "Failed to move ${OLD_SYS_BASENAME} from System${UE_OLD_SYSTEM_SUFFIX} to System. Aborting installation."
+          return 77 #E_PERM
+        }
+      fi
     done
 
-    rm -rf "${_arg_destination%/}/System${UE_OLD_SYSTEM_SUFFIX}" || {
-      term::step::failed_with_error "Failed to remove System${UE_OLD_SYSTEM_SUFFIX} folder. Aborting installation."
-      return 77 #E_PERM
-    }
+    # Only remove the old folder once it is empty, folders present in both locations are left alone.
+    # A symbolic link to another folder is removed without touching what it points to.
+    if [[ -L "${_arg_destination%/}/System${UE_OLD_SYSTEM_SUFFIX}" ]]; then
+      rm -f "${_arg_destination%/}/System${UE_OLD_SYSTEM_SUFFIX}"
+    else
+      rmdir "${_arg_destination%/}/System${UE_OLD_SYSTEM_SUFFIX}" 2>/dev/null || true
+    fi
   done
 
   term::step::complete

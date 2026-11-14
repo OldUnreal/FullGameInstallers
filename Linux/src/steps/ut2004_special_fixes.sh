@@ -62,7 +62,7 @@ step::ut2004_special_fixes() {
   fi
 
   if [[ "${LIBOMP_REQUIRES_SYMLINK}" == "yes" ]]; then
-    ln -s "${SYSTEM_PROVIDED_LIBOMP_PATH}" "${SYSTEM_FOLDER}/libomp.so.5"
+    ln -sf "${SYSTEM_PROVIDED_LIBOMP_PATH}" "${SYSTEM_FOLDER}/libomp.so.5"
   fi
 
   step::ut2004_special_fixes::replace_line_in_file "${HOME}/.ut2004/System/UT2004.ini" "MainMenuClass=GUI2K4.UT2K4MainMenu" "MainMenuClass=GUI2K4.UT2K4MainMenuWS"
@@ -86,16 +86,34 @@ step::ut2004_special_fixes::replace_line_in_file() {
     return 0
   fi
 
-  local FILE_CONTENTS FILE_LINE
-  FILE_CONTENTS="$(cat "${FILENAME}")"
+  # Edit the target of a symbolic link rather than replacing the link
+  FILENAME=$(realpath "${FILENAME}")
 
-  local FILE_NEW_CONTENTS=""
-
+  local FILE_LINE
   local IS_CONTENT_FOUND="no"
 
-  local LINE_SEPARATOR=""
+  # Leave the file alone, and don't require to write next to it, when there is nothing to replace
+  while IFS= read -r FILE_LINE || [[ -n "${FILE_LINE}" ]]; do
+    if [[ "${FILE_LINE%$'\r'}" == "${LINE_TO_REPLACE}" ]]; then
+      IS_CONTENT_FOUND="yes"
+      break
+    fi
+  done <"${FILENAME}"
 
-  while IFS= read -r FILE_LINE; do
+  if [[ "${IS_CONTENT_FOUND}" != "yes" ]]; then
+    return 0
+  fi
+
+  # The new content is written next to the file, then moved over it, so an interrupted write can't truncate the
+  # ini. If the folder can't be written to, the file is rewritten in place, which only needs the file to be writable.
+  local TEMP_FILENAME=""
+  local IS_TEMP_FILE_BESIDE="yes"
+  TEMP_FILENAME=$(mktemp "${FILENAME}.XXXXXX" 2>/dev/null) || {
+    IS_TEMP_FILE_BESIDE="no"
+    TEMP_FILENAME=$(mktemp)
+  }
+
+  while IFS= read -r FILE_LINE || [[ -n "${FILE_LINE}" ]]; do
     # Ini files may use Windows line endings, preserve them
     local LINE_ENDING=""
     if [[ "${FILE_LINE}" == *$'\r' ]]; then
@@ -103,17 +121,21 @@ step::ut2004_special_fixes::replace_line_in_file() {
     fi
 
     if [[ "${FILE_LINE%$'\r'}" == "${LINE_TO_REPLACE}" ]]; then
-      IS_CONTENT_FOUND="yes"
-      FILE_NEW_CONTENTS="${FILE_NEW_CONTENTS}${LINE_SEPARATOR}${REPLACEMENT_LINE}${LINE_ENDING}"
+      printf '%s\n' "${REPLACEMENT_LINE}${LINE_ENDING}"
     else
-      FILE_NEW_CONTENTS="${FILE_NEW_CONTENTS}${LINE_SEPARATOR}${FILE_LINE}"
+      printf '%s\n' "${FILE_LINE}"
     fi
+  done <"${FILENAME}" >"${TEMP_FILENAME}"
 
-    LINE_SEPARATOR=$'\n'
-  done <<<"${FILE_CONTENTS}"
-
-  if [[ "${IS_CONTENT_FOUND}" == "yes" ]]; then
-    echo "${FILE_NEW_CONTENTS}" >"${FILENAME}"
+  if [[ "${IS_TEMP_FILE_BESIDE}" == "yes" ]]; then
+    chmod --reference="${FILENAME}" "${TEMP_FILENAME}"
+    mv -f "${TEMP_FILENAME}" "${FILENAME}"
+  else
+    cat "${TEMP_FILENAME}" >"${FILENAME}" || {
+      rm -f "${TEMP_FILENAME}"
+      return 1
+    }
+    rm -f "${TEMP_FILENAME}"
   fi
 }
 

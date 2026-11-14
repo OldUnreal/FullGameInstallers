@@ -112,7 +112,7 @@ _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" || { echo "Couldn't 
 set -euo pipefail
 
 if [ "${_arg_lint}" == "on" ] && ! command -v shellcheck &>/dev/null; then
-  die "shellcheck must be installed to format the files"
+  die "shellcheck must be installed to lint the files"
 fi
 
 if [ "${_arg_format}" == "on" ] && ! command -v shfmt &>/dev/null; then
@@ -132,12 +132,36 @@ while IFS= read -r -d '' ENTRYPOINT_FILE_PATH; do
 
   cp -f "${ENTRYPOINT_FILE_PATH}" "${DESTINATION_FILE}"
 
+  # Includes can be nested, expand them until none is left. The pass count is bounded to catch circular includes
+  INCLUDE_PASSES=0
   while grep -Eq "^\s*#\s*@include\s+" "${DESTINATION_FILE}"; do
-    # Process the file and save to a swap file
-    sed -Ee '/^\s*#\s*@include/ {
-          s|^\s*#\s*@include\s+(.*)|cat "'"${_SRC_ROOT}"'/\1"|
-          e
-      }' "${DESTINATION_FILE}" >"${DESTINATION_SWAP}"
+    INCLUDE_PASSES=$((INCLUDE_PASSES + 1))
+    if [ "${INCLUDE_PASSES}" -gt 16 ]; then
+      die "${ENTRYPOINT_BASENAME}: @include still present after 16 passes, is there a circular include?"
+    fi
+
+    # Process the file and save to a swap file. The included files are read by awk, rather than having sed
+    # run the content of the @include lines as shell commands
+    awk -v src_root="${_SRC_ROOT}" '
+      /^[ \t]*#[ \t]*@include[ \t]+/ {
+        include_path = $0
+        sub(/^[ \t]*#[ \t]*@include[ \t]+/, "", include_path)
+        include_file = src_root "/" include_path
+
+        status = (getline line < include_file)
+        if (status < 0) {
+          print "Cannot read " include_file > "/dev/stderr"
+          exit 1
+        }
+        while (status > 0) {
+          print line
+          status = (getline line < include_file)
+        }
+        close(include_file)
+        next
+      }
+      { print }
+    ' "${DESTINATION_FILE}" >"${DESTINATION_SWAP}"
 
     # Move the expanded version back to the temp file for the next pass
     mv -f "${DESTINATION_SWAP}" "${DESTINATION_FILE}"

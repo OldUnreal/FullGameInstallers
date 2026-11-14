@@ -210,7 +210,7 @@ __downloader::download_source() {
   ARCHIVE_FILENAME=$(helper::string::field "${CURRENT_DOWNLOAD_URL_SET}" 1)
   ARCHIVE_FILENAME="${ARCHIVE_FILENAME##*/}"
   ARCHIVE_FILENAME="${ARCHIVE_FILENAME%%\?*}"
-  ARCHIVE_FILENAME=$(printf '%b' "${ARCHIVE_FILENAME//%/\\x}")
+  ARCHIVE_FILENAME=$(__downloader::percent_decode "${ARCHIVE_FILENAME}")
 
   if [[ -z "${ARCHIVE_FILENAME}" ]] || [[ "${ARCHIVE_FILENAME}" == */* ]] || [[ "${ARCHIVE_FILENAME}" == "." ]] || [[ "${ARCHIVE_FILENAME}" == ".." ]]; then
     return 1
@@ -265,6 +265,25 @@ __downloader::download_source() {
   term::step::complete
 }
 
+# Decodes %XX sequences only, any other character (including backslashes) is kept as is
+__downloader::percent_decode() {
+  local ENCODED="${1:-}"
+  local DECODED=""
+  local DECODED_CHAR
+  local PERCENT_ESCAPE_REGEX='^([^%]*)%([0-9A-Fa-f]{2})(.*)$'
+
+  while [[ "${ENCODED}" =~ ${PERCENT_ESCAPE_REGEX} ]]; do
+    printf -v DECODED_CHAR '\\x%s' "${BASH_REMATCH[2]}"
+    # shellcheck disable=SC2059 # The format is built from two validated hexadecimal digits
+    printf -v DECODED_CHAR "${DECODED_CHAR}"
+
+    DECODED+="${BASH_REMATCH[1]}${DECODED_CHAR}"
+    ENCODED="${BASH_REMATCH[3]}"
+  done
+
+  printf '%s' "${DECODED}${ENCODED}"
+}
+
 __downloader::verify_file() {
   local FILE_PATH="${1:-}"
   local EXPECTED_SIZE="${2:-}"
@@ -283,7 +302,8 @@ __downloader::verify_file() {
     local FILE_HASH
     FILE_HASH=$(helper::progress::run_with_progress "Verifying file" downloader::compute_sha256sum "${FILE_PATH}")
 
-    if [[ -n "${FILE_HASH}" ]] && [[ "${FILE_HASH}" != "${EXPECTED_HASH}" ]]; then
+    # An empty hash (no sha256 tool, or a read error) must not be mistaken for a match
+    if [[ "${FILE_HASH}" != "${EXPECTED_HASH}" ]]; then
       return 1
     fi
   fi

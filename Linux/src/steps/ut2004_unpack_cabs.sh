@@ -146,7 +146,7 @@ __step::ut2004_unpack_cabs::run() {
 
   # If the file count cannot be determined, extraction still proceeds without a percentage
   local RAW_TOTAL_FILES_TO_EXTRACT TOTAL_FILES_TO_EXTRACT=0
-  RAW_TOTAL_FILES_TO_EXTRACT=$("${UNSHIELD_BIN}" l "${CAB_FILE}" | tail -n1)
+  RAW_TOTAL_FILES_TO_EXTRACT=$("${UNSHIELD_BIN}" l "${CAB_FILE}" | tail -n1) || true
 
   local LINE_MATCH_REGEX='^\s*([0-9]+)'
 
